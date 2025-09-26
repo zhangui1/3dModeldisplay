@@ -1,0 +1,286 @@
+﻿
+InputObject                                                                    
+-----------                                                                    
+// standardViewer.js - 澶勭悊鏍囧噯鏍煎紡(GLTF/GLB銆丱BJ銆丼TL銆丗BX銆丼OG)鐨勬ā鍧?- 浣跨敤ES妯″潡鏂瑰紡瀹炵幇
+// 瀵煎叆THREE鏍稿績搴撳拰鎵€闇€鍔犺浇鍣?import * as THREE from 'three';                      
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';         
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';       
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';           
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';           
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';           
+      // 浣跨敤ES妯″潡鏂瑰紡鍒涘缓GLTFLoader                                              
+      const dracoLoader = new DRACOLoader();                                   
+      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/de...
+      dracoLoader.setDecoderConfig({ type: 'js' });                            
+      gltfLoader.setDRACOLoader(dracoLoader);                                  
+      // 浣跨敤ES妯″潡鏂瑰紡鍒涘缓OBJLoader                                               
+      // 浣跨敤ES妯″潡鏂瑰紡鍒涘缓STLLoader                                               
+          const material = new THREE.MeshStandardMaterial({                    
+            side: THREE.DoubleSide                                             
+          const mesh = new THREE.Mesh(geometry, material);                     
+      // 浣跨敤ES妯″潡鏂瑰紡鍒涘缓FBXLoader                                               
+                const stdMaterial = new THREE.MeshStandardMaterial();          
+      // 浣跨敤fetch API鍔犺浇SOG鏂囦欢                                                 
+            // 鍒涘缓涓€涓粍鏉ュ寘鍚墍鏈夊璞?            const group = new THREE.Group(); 
+                // 鍒涘缓鍑犱綍浣?                const geometry = new THREE.Buffer...
+                  geometry.setAttribute('position', new THREE.BufferAttribut...
+                  geometry.setIndex(new THREE.BufferAttribute(new Uint32Arra...
+                  material = new THREE.MeshStandardMaterial({                  
+                    color: obj.material.color ? new THREE.Color(obj.material...
+                    side: THREE.DoubleSide                                     
+                  material = new THREE.MeshStandardMaterial({                  
+                    side: THREE.DoubleSide                                     
+                mesh = new THREE.Mesh(geometry, material);                     
+ * @returns {THREE.Object3D|null} - 杩斿洖THREE.Object3D瀵硅薄鎴杗ull                  
+    const material = new THREE.MeshStandardMaterial({                          
+      side: THREE.DoubleSide                                                   
+    const mesh = new THREE.Mesh(result, material);                             
+    const group = new THREE.Group();                                           
+              mat.shadowSide = THREE.FrontSide;                                
+            child.material.shadowSide = THREE.FrontSide;                       
+ * 涓轰笉鍚岀被鍨嬬殑妯″瀷杩涜鏂瑰悜璋冩暣锛岀‘淇濇ā鍨嬫绔嬫樉绀? * @param {THREE.Object3D} object - TH...
+  console.log(`姝ｅ湪璋冩暣${format}鏍煎紡妯″瀷鐨勬柟鍚慲);                                    
+  // 閲嶇疆鏃嬭浆锛岀‘淇濅粠鍒濆鐘舵€佸紑濮?  object.rotation.set(0, 0, 0);                     
+  // 鍒嗘瀽妯″瀷鐨勭粨鏋勫拰鏈濆悜                                                           
+  const bbox = new THREE.Box3().setFromObject(object);                         
+  const size = bbox.getSize(new THREE.Vector3());                              
+  const center = bbox.getCenter(new THREE.Vector3());                          
+  // 1. 棣栧厛妫€娴嬫ā鍨嬫槸鍚﹀€掔疆 - 鍒嗘瀽椤剁偣鎴栫綉鏍煎垎甯?  let topHeavy = false;               
+  let bottomHeavy = false;                                                     
+  // 灏濊瘯妫€娴嬫ā鍨嬫槸鍚﹀€掔疆                                                          
+  if (object.isObject3D) {                                                     
+    let topCount = 0;                                                          
+    let bottomCount = 0;                                                       
+    let totalVertices = 0;                                                     
+                                                                               
+    // 鍒嗘瀽妯″瀷缃戞牸鍒嗗竷                                                            
+    object.traverse(child => {                                                 
+      if (child.isMesh && child.geometry) {                                    
+        const positions = child.geometry.attributes.position;                  
+                                                                               
+        if (positions) {                                                       
+          const count = positions.count;                                       
+          totalVertices += count;                                              
+                                                                               
+          for (let i = 0; i < count; i++) {                                    
+            const y = positions.getY(i);                                       
+            if (y > 0) topCount++;                                             
+            else bottomCount++;                                                
+          }                                                                    
+        }                                                                      
+    });                                                                        
+                                                                               
+    // 濡傛灉鏈夋槑鏄剧殑椤堕儴鎴栧簳閮ㄥ垎甯冨€惧悜锛屽彲鑳介渶瑕佽皟鏁?    if (totalVertices > 0) {          
+      topHeavy = topCount / totalVertices > 0.7; // 瓒呰繃70%鐨勯《鐐瑰湪涓婂崐閮ㄥ垎         
+      bottomHeavy = bottomCount / totalVertices > 0.7; // 瓒呰繃70%鐨勯《鐐瑰湪涓嬪崐閮ㄥ垎   
+      console.log(`妯″瀷椤剁偣鍒嗗竷: 椤堕儴=${(topCount/totalVertices*100).toFixed(1)}...
+    }                                                                          
+  console.log(`妯″瀷灏哄: 瀹藉害=${size.x.toFixed(2)}, 楂樺害=${size.y.toFixed(2)}, 娣...
+                                                                               
+  // 纭畾妯″瀷鐨勪富瑕佹湞鍚?  const isFlat = size.y < size.x * 0.3 && size.y < size.z...
+  const isTall = size.y > size.x * 2 && size.y > size.z * 2;     // 楂樺ぇ妯″瀷     
+  const isLongX = size.x > size.y * 2 && size.x > size.z * 2;    // X杞村欢浼?  ...
+                                                                               
+  // 鏍规嵁鏂囦欢鏍煎紡鍜屾ā鍨嬫湞鍚戝簲鐢ㄩ€傚綋鐨勬棆杞?  switch (format.toLowerCase()) {             
+      if (isFlat) {                                                            
+        // 鎵佸钩OBJ妯″瀷閫氬父闇€瑕佹按骞虫斁缃?        object.rotation.x = -Math.PI / 2;     
+      } else if (isTall) {                                                     
+        // 楂樺ぇ妯″瀷浣跨敤姝ｈ瑙?        object.rotation.y = 0; // 涓嶆棆杞紝淇濇寔姝ｈ瑙?   ...
+        // 榛樿OBJ璋冩暣锛屼繚鎸佹瑙嗚                                                  
+        object.rotation.x = -Math.PI / 2;                                      
+        object.rotation.z = 0;                                                 
+      // GLB/GLTF鏍煎紡閫氬父宸茬粡鏄痀-UP                                                
+      if (isFlat) {                                                            
+        // 濡傛灉鏄墎骞虫ā鍨嬶紝鍙兘闇€瑕佽皟鏁翠负姘村钩                                          
+        object.rotation.x = -Math.PI / 2;                                      
+      } else {                                                                 
+        // 淇敼涓烘瑙嗚锛堜笉鏃嬭浆锛?        object.rotation.y = 0; // 姝ｈ瑙?      }     
+      // STL妯″瀷鏂瑰悜澶氭牱鍖栵紝闇€瑕佹洿澶嶆潅鐨勫鐞?      if (isFlat) {                       
+        object.rotation.x = -Math.PI / 2;                                      
+      } else if (isLongZ) {                                                    
+        // 濡傛灉Z杞村緢闀匡紝鍙兘闇€瑕佹í鍚戞斁缃紝浣嗕繚鎸佹瑙嗚                                   
+        object.rotation.y = 0; // 姝ｈ瑙?      } else {                          
+        object.rotation.x = -Math.PI / 2;                                      
+      // FBX妯″瀷閫氬父宸茬粡鏄痀-UP                                                     
+      if (isFlat) {                                                            
+        object.rotation.x = -Math.PI / 2;                                      
+      } else {                                                                 
+        object.rotation.y = 0; // 姝ｈ瑙掞紝涓嶅仛鏃嬭浆                                 
+      if (isFlat) {                                                            
+        object.rotation.x = -Math.PI / 2;                                      
+      } else if (isTall) {                                                     
+        // 濡傛灉鏄珮澶фā鍨嬶紝淇濇寔Y-UP锛屼娇鐢ㄦ瑙嗚                                        
+        object.rotation.y = 0; // 姝ｈ瑙?      } else {                          
+        object.rotation.x = -Math.PI / 2;                                      
+      // 鍏朵粬鏍煎紡锛屾牴鎹ā鍨嬪舰鐘跺喅瀹氭棆杞柟寮?      if (isFlat) {                         
+        object.rotation.x = -Math.PI / 2;                                      
+      } else if (isTall) {                                                     
+        object.rotation.y = 0; // 姝ｈ瑙?      } else {                          
+        object.rotation.x = -Math.PI / 2;                                      
+      break;                                                                   
+                                                                               
+  // 淇妫€娴嬪埌鐨勫€掔珛闂                                                          
+  if (isUpsideDown) {                                                          
+    console.log('妫€娴嬪埌妯″瀷鍊掔珛锛岃繘琛屾棆杞慨姝?);                                      
+    // 濡傛灉妯″瀷鍊掔珛锛屾棆杞?80搴?    object.rotateX(Math.PI);                          
+                                                                               
+  // 杩涗竴姝ユ鏌ユā鍨嬩腑蹇冪偣涓庡師鐐圭殑鍏崇郴锛屽彲鑳介渶瑕佸钩绉绘ā鍨?  if (Math.abs(center.x) > size.x...
+    console.log('妯″瀷涓績鐐瑰亸绂诲師鐐硅緝杩滐紝杩涜浣嶇疆璋冩暣');                                
+    // 灏嗘ā鍨嬩腑蹇冪Щ鑷冲師鐐?    object.position.sub(center);                          
+                                                                               
+  const minDim = Math.min(size.x, size.y, size.z);                             
+                                                                               
+  // 缂╂斁绛栫暐浼樺寲锛?  // 1. 鏍规嵁妯″瀷澶у皬搴旂敤缂╂斁                                        
+  // 2. 纭繚妯″瀷鏄剧ず澶у皬鍚堥€?  // 3. 鏋佸害涓嶅潎鍖€鐨勬ā鍨嬬壒娈婂鐞?                            
+  // 鏅亶鏀惧ぇ鎵€鏈夋ā鍨嬶紝浣垮叾鏄剧ず鏇村ぇ                                                   
+  let scaleFactor = 1.0;                                                       
+                                                                               
+  if (maxDim > 100) {                                                          
+    // 瓒呭ぇ妯″瀷缂╁皬鍒板悎鐞嗗昂瀵?    scaleFactor = 25 / maxDim;                         
+    console.log(`妯″瀷杩囧ぇ锛岀缉鏀剧郴鏁? ${scaleFactor.toFixed(4)}`);                   
+  } else if (maxDim < 10) {                                                    
+    // 澶у鏁版ā鍨嬮渶瑕佹斁澶э紝澧炲ぇ浜嗛槇鍊煎拰缂╂斁绯绘暟                                          
+    scaleFactor = 15 / maxDim;                                                 
+    console.log(`妯″瀷杈冨皬锛岀缉鏀剧郴鏁? ${scaleFactor.toFixed(4)}`);                   
+  } else if (maxDim / minDim > 100) {                                          
+    // 鏋佸害涓嶅潎鍖€妯″瀷锛屽皾璇曟洿骞宠　鐨勭缉鏀?    console.log('妯″瀷姣斾緥鏋佷笉鍧囧寑锛屽簲鐢ㄧ壒娈婄缉鏀?);     
+    const avgDim = (size.x + size.y + size.z) / 3;                             
+    if (avgDim > 10 || avgDim < 1) {                                           
+      scaleFactor = avgDim > 10 ? 15 / avgDim : 10 / avgDim;                   
+    }                                                                          
+  } else {                                                                     
+    // 閫傚害鏀惧ぇ鍏朵粬妯″瀷锛屼娇鍏惰瑙夋晥鏋滄洿濂?    scaleFactor = 2.0;                        
+  }                                                                            
+                                                                               
+  // 搴旂敤缂╂斁                                                                    
+  object.scale.multiplyScalar(scaleFactor);                                    
+                                                                               
+  // 鏇存柊鍙樻崲鐭╅樀纭繚搴旂敤鎵€鏈夋洿鏀?  object.updateMatrixWorld(true);                   
+                                                                               
+                                                                               
+  }                                                                            
+                                                                               
+// standardViewer.js - 澶勭悊鏍囧噯鏍煎紡(GLTF/GLB銆丱BJ銆丼TL銆丗BX銆丼OG)鐨勬ā鍧?                
+      // 纭繚GLTFLoader鍙敤 - 灏濊瘯澶氱鏂瑰紡鑾峰彇瀹?      let GLTFLoader = null;         
+      // 灏濊瘯浠庡叏灞€THREE瀵硅薄鑾峰彇GLTFLoader                                         
+      if (window.THREE && window.THREE.GLTFLoader) {                           
+        GLTFLoader = window.THREE.GLTFLoader;                                  
+      }                                                                        
+      // 澶囩敤鏂规锛氬湪鍏ㄥ眬鑼冨洿鏌ユ壘GLTFLoader                                          
+      else if (window.GLTFLoader) {                                            
+        GLTFLoader = window.GLTFLoader;                                        
+      // 濡傛灉浠嶇劧鎵句笉鍒帮紝鎶涘嚭閿欒                                                    
+      if (!GLTFLoader) {                                                       
+        throw new Error('GLTFLoader鏈姞杞斤紝璇锋鏌ヨ剼鏈紩鐢?);                         
+      let DRACOLoader = null;                                                  
+      // 灏濊瘯浠庡叏灞€THREE瀵硅薄鑾峰彇DRACOLoader                                        
+      if (window.THREE && window.THREE.DRACOLoader) {                          
+        DRACOLoader = window.THREE.DRACOLoader;                                
+      }                                                                        
+      // 澶囩敤鏂规锛氬湪鍏ㄥ眬鑼冨洿鏌ユ壘DRACOLoader                                         
+      else if (window.DRACOLoader) {                                           
+        DRACOLoader = window.DRACOLoader;                                      
+      if (DRACOLoader) {                                                       
+        const dracoLoader = new DRACOLoader();                                 
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/...
+        dracoLoader.setDecoderConfig({ type: 'js' });                          
+        gltfLoader.setDRACOLoader(dracoLoader);                                
+      // 纭繚OBJLoader鍙敤 - 灏濊瘯澶氱鏂瑰紡鑾峰彇瀹?      let OBJLoader = null;           
+      // 灏濊瘯浠庡叏灞€THREE瀵硅薄鑾峰彇OBJLoader                                          
+      if (window.THREE && window.THREE.OBJLoader) {                            
+        OBJLoader = window.THREE.OBJLoader;                                    
+      }                                                                        
+      // 澶囩敤鏂规锛氬湪鍏ㄥ眬鑼冨洿鏌ユ壘OBJLoader                                           
+      else if (window.OBJLoader) {                                             
+        OBJLoader = window.OBJLoader;                                          
+      // 濡傛灉浠嶇劧鎵句笉鍒帮紝鎶涘嚭閿欒                                                    
+      if (!OBJLoader) {                                                        
+        throw new Error('OBJLoader鏈姞杞斤紝璇锋鏌ヨ剼鏈紩鐢?);                          
+      // 纭繚STLLoader鍙敤 - 灏濊瘯澶氱鏂瑰紡鑾峰彇瀹?      let STLLoader = null;           
+                                                                               
+      // 灏濊瘯浠庡叏灞€THREE瀵硅薄鑾峰彇STLLoader                                          
+      if (window.THREE && window.THREE.STLLoader) {                            
+        STLLoader = window.THREE.STLLoader;                                    
+      }                                                                        
+      // 澶囩敤鏂规锛氬湪鍏ㄥ眬鑼冨洿鏌ユ壘STLLoader                                           
+      else if (window.STLLoader) {                                             
+        STLLoader = window.STLLoader;                                          
+                                                                               
+      // 濡傛灉浠嶇劧鎵句笉鍒帮紝鎶涘嚭閿欒                                                    
+      if (!STLLoader) {                                                        
+        throw new Error('STLLoader鏈姞杞斤紝璇锋鏌ヨ剼鏈紩鐢?);                          
+                                                                               
+                                                                               
+          const material = new window.THREE.MeshStandardMaterial({             
+            side: window.THREE.DoubleSide                                      
+          const mesh = new window.THREE.Mesh(geometry, material);              
+      // 纭繚FBXLoader鍙敤 - 灏濊瘯澶氱鏂瑰紡鑾峰彇瀹?      let FBXLoader = null;           
+                                                                               
+      // 灏濊瘯浠庡叏灞€THREE瀵硅薄鑾峰彇FBXLoader                                          
+      if (window.THREE && window.THREE.FBXLoader) {                            
+        FBXLoader = window.THREE.FBXLoader;                                    
+      }                                                                        
+      // 澶囩敤鏂规锛氬湪鍏ㄥ眬鑼冨洿鏌ユ壘FBXLoader                                           
+      else if (window.FBXLoader) {                                             
+        FBXLoader = window.FBXLoader;                                          
+      }                                                                        
+                                                                               
+      // 濡傛灉浠嶇劧鎵句笉鍒帮紝鎶涘嚭閿欒                                                    
+      if (!FBXLoader) {                                                        
+        throw new Error('FBXLoader鏈姞杞斤紝璇锋鏌ヨ剼鏈紩鐢?);                          
+      }                                                                        
+                                                                               
+                                                                               
+                const stdMaterial = new window.THREE.MeshStandardMaterial();   
+                                                                               
+      }                                                                        
+                                                                               
+      // 浣跨敤fetch API浠ｆ浛window.THREE.FileLoader锛屾洿鍙潬                          
+            // 鍒涘缓涓€涓粍鏉ュ寘鍚墍鏈夊璞?            const group = new window.THREE...
+                // 鍒涘缓鍑犱綍浣?                const geometry = new window.THREE...
+                  geometry.setAttribute('position', new window.THREE.BufferA...
+                  geometry.setIndex(new window.THREE.BufferAttribute(new Uin...
+                  material = new window.THREE.MeshStandardMaterial({           
+                    color: obj.material.color ? new window.THREE.Color(obj.m...
+                    side: window.THREE.DoubleSide                              
+                  material = new window.THREE.MeshStandardMaterial({           
+                    side: window.THREE.DoubleSide                              
+                mesh = new window.THREE.Mesh(geometry, material);              
+ * @returns {window.THREE.Object3D|null} - 杩斿洖window.THREE.Object3D瀵硅薄鎴杗ull    
+    const material = new window.THREE.MeshStandardMaterial({                   
+      side: window.THREE.DoubleSide                                            
+    const mesh = new window.THREE.Mesh(result, material);                      
+    const group = new window.THREE.Group();                                    
+              mat.shadowSide = window.THREE.FrontSide;                         
+            child.material.shadowSide = window.THREE.FrontSide;                
+      }                                                                        
+ * 涓轰笉鍚岀被鍨嬬殑妯″瀷杩涜鏂瑰悜璋冩暣锛岀‘淇濇ā鍨嬫绔嬫樉绀? * @param {window.THREE.Object3D} obje...
+  // 鏍规嵁鏂囦欢鏍煎紡涓烘ā鍨嬪簲鐢ㄩ€傚綋鐨勬棆杞互纭繚妯″瀷鍦ㄥ睆骞曚笂鏄剧ず涓烘绔嬬姸鎬?  switch (format.toLow...
+      // 瀵逛簬OBJ妯″瀷杩涜绫讳技璋冩暣                                                    
+      object.rotation.x = -Math.PI / 2;                                        
+      object.rotation.z = 0;                                                   
+      // GLB/GLTF鏍煎紡鍙兘闇€瑕佷笉鍚岀殑璋冩暣                                             
+      object.rotation.x = 0; // GLB閫氬父宸茬粡鏄痀-UP                                 
+      object.rotation.y = Math.PI; // 鏃嬭浆180搴︿娇妯″瀷姝ｅ瑙傚療鑰?      break;         
+                                                                               
+      // STL妯″瀷閫氬父闇€瑕佹棆杞负Y杞村悜涓?      object.rotation.x = -Math.PI / 2;        
+      // FBX妯″瀷閫氬父宸茬粡鏄痀杞村悜涓?      // 浣嗘湁鏃堕渶瑕佹棆杞互闈㈠悜鐢ㄦ埛                        
+      object.rotation.y = Math.PI;                                             
+                                                                               
+      object.rotation.x = -Math.PI / 2;                                        
+                                                                               
+      // 鍏朵粬鏍煎紡锛屼娇鐢ㄨ埅鎷嶆ā鍨嬪父瑙佺殑鏈濆悜                                              
+      object.rotation.x = -Math.PI / 2;                                        
+      object.rotation.z = 0;                                                   
+  // 璁＄畻妯″瀷鐨勮竟鐣屾                                                              
+  const bbox = new window.THREE.Box3().setFromObject(object);                  
+  const size = bbox.getSize(new window.THREE.Vector3());                       
+  // 鐗瑰埆澶勭悊锛氭鏌ユ槸鍚︿负鑸媿/楦熺灠绫绘ā鍨嬶紙閫氬父瀹藉害鍜岄暱搴﹁繙澶т簬楂樺害锛?  if (size.y < size.x *...
+    // 纭繚杩欑被妯″瀷鐨勬湞鍚戞纭紙椤堕儴鍚戜笂锛?    object.rotation.x = -Math.PI / 2;         
+    object.rotation.z = 0;                                                     
+  // 濡傛灉妯″瀷灏哄杩囧ぇ鎴栬繃灏忥紝搴旂敤閫傚綋鐨勭缉鏀?  if (maxDim > 100 || maxDim < 0.1) {        
+    const scaleFactor = maxDim > 100 ? 1 / (maxDim / 10) : 1 / (maxDim * 10);  
+    object.scale.multiplyScalar(scaleFactor);                                  
+    console.log(`妯″瀷灏哄璋冩暣: ${maxDim} -> 缂╂斁鍥犲瓙: ${scaleFactor}`);             
+
+

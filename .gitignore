@@ -1,0 +1,25 @@
+# 依赖包
+node_modules/
+
+# 环境文件
+.env
+
+# 数据文件夹中的文件，但保留文件夹本身
+data/*
+!data/.gitkeep
+
+# 上传的文件，但保留文件夹本身
+public/models/*
+!public/models/.gitkeep
+public/images/*
+!public/images/.gitkeep
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo

@@ -1,0 +1,168 @@
+/* 管理页面样式 */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+}
+
+/* 模型列表样式 */
+.card-header {
+    background-color: #f1f1f1;
+    font-weight: bold;
+}
+
+.card-header .row {
+    align-items: center;
+}
+
+.model-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.model-item:hover {
+    background-color: #f9f9f9;
+}
+
+.model-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.model-format-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+.format-glb, .format-gltf, .format-ply {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.format-obj {
+    background-color: #cfe2ff;
+    color: #084298;
+}
+
+.format-stl {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.format-fbx {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+
+.format-sog {
+    background-color: #e2d9f3;
+    color: #3b0764;
+}
+
+/* 排序按钮样式 */
+.order-controls {
+    white-space: nowrap;
+}
+
+.btn-order {
+    padding: 2px 5px;
+    font-size: 0.8rem;
+}
+
+/* 模型预览 */
+.model-preview-container {
+    margin: 15px 0;
+    max-width: 100%;
+    height: 200px;
+    background-color: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* 上传进度条 */
+.progress-container {
+    margin-top: 15px;
+    display: none;
+}
+
+/* 搜索结果高亮 */
+.highlight {
+    background-color: #ffff99;
+    padding: 0 2px;
+}
+
+/* 拖放区域样式 */
+.drop-zone {
+    padding: 40px 20px;
+    text-align: center;
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.drop-zone:hover {
+    background-color: #f0f0f0;
+}
+
+.drop-zone.active {
+    border-color: #4caf50;
+    background-color: #e8f5e9;
+}
+
+/* 加载中状态 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.loading-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .col-1, .col-2, .col-3, .col-md-6 {
+        padding: 0 8px;
+    }
+    
+    .model-description {
+        max-height: 50px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 768px) {
+    .card-header {
+        display: none;
+    }
+    
+    .model-item {
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+    }
+    
+    .model-item [class*="col-"] {
+        margin-bottom: 10px;
+    }
+}

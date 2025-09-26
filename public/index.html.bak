@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3DMD</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="logo">
+            <a href="/"><img src="images/3D鏂囩墿鍙ゅ缓.png" alt="Logo"></a>
+        </div>
+        <nav class="main-nav">
+            <ul>
+                <!-- 瀵艰埅鑿滃崟宸插垹闄?-->
+            </ul>
+        </nav>
+        <div class="header-right">
+            <div class="language-switch">
+                <span class="active">涓枃</span>
+                <span>|</span>
+                <span>EN</span>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="model-container">
+            <canvas id="model-canvas"></canvas>
+            
+            <!-- 妯″瀷鎺у埗闈㈡澘 -->
+            <div class="model-controls-panel">
+                <div class="control-group">
+                    <button id="auto-rotate" class="icon-btn" title="鑷姩鏃嬭浆">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button id="reset-camera" class="icon-btn" title="閲嶇疆瑙嗚">
+                        <i class="bi bi-house"></i>
+                    </button>
+                    <button id="fullscreen" class="icon-btn" title="鍏ㄥ睆">
+                        <i class="bi bi-fullscreen"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="model-info">
+                <div class="model-title">
+                    <h1 id="model-name">妯″瀷鍚嶇О</h1>
+                </div>
+                <div class="model-description">
+                    <p id="model-desc">妯″瀷鎻忚堪淇℃伅</p>
+                </div>
+                <!-- 鍒犻櫎浜嗚В鏇村鎸夐挳 -->
+            </div>
+        </div>
+        
+        <div class="controls-container">
+            <div class="control-buttons">
+                <button id="prev-model" class="control-btn"><span class="arrow left"></span></button>
+                <button id="next-model" class="control-btn"><span class="arrow right"></span></button>
+            </div>
+            <div class="model-thumbnails" id="thumbnails-container">
+                <!-- 缂╃暐鍥惧皢閫氳繃JavaScript鍔ㄦ€佺敓鎴?-->
+            </div>
+        </div>
+    </div>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-left">
+                <div class="footer-logo">
+                    <img src="images/3D妯″瀷灞曠ず.png" alt="Logo" class="footer-logo-img">
+                    <p>3D妯″瀷灞曠ず绯荤粺</p>
+                </div>
+            </div>
+            <div class="footer-middle">
+                <p class="tech-support-title">鍏充簬鎴戜滑</p>
+                <div class="lab-group">
+                    <div class="lab-item">
+                        <img src="images/3D鏂囩墿鍙ゅ缓.png" alt="鏂囩墿鍙ゅ缓">
+                        <p>鏂囩墿鍙ゅ缓3D閲嶅缓涓庡睍绀哄疄楠屽</p>
+                    </div>
+                    <div class="lab-item">
+                        <img src="images/3D閲嶅缓.png" alt="3D閲嶅缓">
+                        <p>鏂囩墿鍙ゅ缓3D閲嶅缓灏忕粍</p>
+                    </div>
+                    <div class="lab-item">
+                        <img src="images/3D灞曠ず.png" alt="3D灞曠ず">
+                        <p>鏂囩墿鍙ゅ缓3D灞曠ず灏忕粍</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-right">
+                <div class="tech-support">
+                    <p class="tech-support-title">鎶€鏈敮鎸?/p>
+                    <div class="tech-links">
+                        <a href="https://threejs.org/" target="_blank" class="tech-link">Three.js</a>
+                        <a href="https://superspl.at/editor" target="_blank" class="tech-link">SuperSplat</a>
+                        <a href="https://zhuanlan.zhihu.com/p/680669616" target="_blank" class="tech-link">3D Gaussian Splatting</a>
+                    </div>
+                </div>
+                <div class="copyright">
+                    <p>漏 2025 3DMD涓?Dgroup 鐗堟潈鎵€鏈?/p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 鍏堝姞杞絋HREE.js搴擄紝纭繚鏈夊叏灞€THREE瀵硅薄 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+    
+    <!-- 纭繚THREE.js鍔犺浇瀹屾垚鍚庡啀鍔犺浇鍏朵粬渚濊禆 -->
+    <script>
+        // 纭THREE.js宸插姞杞?        if (typeof THREE === 'undefined') {
+            console.error('THREE.js鏈垚鍔熷姞杞斤紝璇锋鏌ョ綉缁滆繛鎺?);
+        } else {
+            console.log('THREE.js宸叉垚鍔熷姞杞斤紝鐗堟湰:', THREE.REVISION);
+        }
+    </script>
+    
+    <!-- 鍚勭鏍煎紡鐨勬ā鍨嬪姞杞藉櫒 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/OBJLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/libs/fflate.min.js"></script>
+    
+    <!-- 纭繚鍔犺浇鍣ㄩ兘宸叉寕杞藉埌THREE瀵硅薄涓?-->
+    <script>
+        // 妫€鏌ュ繀瑕佺殑鍔犺浇鍣ㄦ槸鍚﹀彲鐢?        setTimeout(function() {
+            const components = ['OrbitControls', 'GLTFLoader', 'OBJLoader', 'STLLoader', 'FBXLoader'];
+            components.forEach(name => {
+                if (!THREE[name]) {
+                    console.error(`THREE.${name} 鏈垚鍔熷姞杞斤紝鍙兘浼氬奖鍝嶅姛鑳絗);
+                }
+            });
+        }, 500);
+    </script>
+    
+    <!-- 鐒跺悗閫氳繃importmap鍔犺浇妯″潡鐗堟湰 -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./js/lib/three.module.js",
+                "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/GLTFLoader.js",
+                "three/examples/jsm/loaders/DRACOLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/DRACOLoader.js",
+                "three/examples/jsm/loaders/OBJLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/OBJLoader.js",
+                "three/examples/jsm/loaders/STLLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/STLLoader.js",
+                "three/examples/jsm/loaders/FBXLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/FBXLoader.js",
+                "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/controls/OrbitControls.js",
+                "@mkkellogg/gaussian-splats-3d": "./js/lib/gaussian-splats-3d.module.js"
+            }
+        }
+    </script>
+    
+    <!-- 涓诲簲鐢ㄨ剼鏈敼涓烘ā鍧楀寲鏂瑰紡鍔犺浇 -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
