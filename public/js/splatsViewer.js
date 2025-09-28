@@ -39,14 +39,15 @@ export function loadSplatModel(path, modelId, onProgress, options = {}) {
         throw new Error('找不到模型容器元素');
       }
       
-      // 创建一个专用的查看器容器
+      // 创建一个专用的查看器容器，并使其居中
       const viewerContainer = document.createElement('div');
       viewerContainer.id = 'viewer-container';
       viewerContainer.style.position = 'absolute';
-      viewerContainer.style.top = '0';
-      viewerContainer.style.left = '0';
+      viewerContainer.style.top = '50%'; // 从顶部50%开始
+      viewerContainer.style.left = '50%'; // 从左侧50%开始
       viewerContainer.style.width = '100%';
       viewerContainer.style.height = '100%';
+      viewerContainer.style.transform = 'translate(-50%, -50%)'; // 中心点对齐
       viewerContainer.style.zIndex = '1'; 
       modelContainer.appendChild(viewerContainer);
       

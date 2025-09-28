@@ -23,7 +23,7 @@ const BUTTON_STATES = {
 
 const CONFIG = {
   modelView: { 
-    autoRotateSpeed: 0.3, // 正值表示从右到左顺时针旋转，调整为更符合人类习惯的速度
+    autoRotateSpeed: 9.5, // 进一步提高标准模型的旋转速度
     minDistance: 0.1, 
     maxDistance: 5000 
   },

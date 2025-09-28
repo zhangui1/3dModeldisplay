@@ -39,14 +39,15 @@ export function loadPlyModel(path, modelId, onProgress, options = {}) {
         throw new Error('找不到模型容器元素');
       }
       
-      // 创建一个专用的查看器容器
+      // 创建一个专用的查看器容器，并使其居中
       const viewerContainer = document.createElement('div');
       viewerContainer.id = 'viewer-container';
       viewerContainer.style.position = 'absolute';
-      viewerContainer.style.top = '0';
-      viewerContainer.style.left = '0';
+      viewerContainer.style.top = '50%'; // 从顶部50%开始
+      viewerContainer.style.left = '50%'; // 从左侧50%开始
       viewerContainer.style.width = '100%';
       viewerContainer.style.height = '100%';
+      viewerContainer.style.transform = 'translate(-50%, -50%)'; // 中心点对齐
       viewerContainer.style.zIndex = '1'; 
       modelContainer.appendChild(viewerContainer);
       
@@ -315,60 +316,153 @@ function adjustCameraToModel() {
         const sampleSize = Math.min(splatCount, 1000); // 最多采样1000个点
         const step = Math.max(1, Math.floor(splatCount / sampleSize));
         
-        // 使用更安全的方式获取点云数据
+        // 使用三阶段策略确保获取有效的模型尺寸
         let hasValidPoints = false;
+        let boundingBoxValid = false;
         
-        // 创建边界框并直接使用场景对象计算
+        // 创建边界框
         const boundingBox = new THREE.Box3();
+        
+        // 阶段1：使用场景对象的内置方法计算边界框（最快）
         try {
-          // 尝试直接从场景计算边界框
-          boundingBox.setFromObject(scene);
-          hasValidPoints = true;
-          console.log('通过场景对象计算边界框成功');
-        } catch (e) {
-          console.warn('通过场景对象计算边界框失败:', e);
+          // 设置一个临时边界框用于验证
+          const tempBox = new THREE.Box3().setFromObject(scene);
           
-          // 如果直接计算失败，尝试遍历点云
+          // 验证边界框是否有效
+          const tempSize = new THREE.Vector3();
+          tempBox.getSize(tempSize);
+          const tempMaxDim = Math.max(tempSize.x, tempSize.y, tempSize.z);
+          
+          // 只有在边界框尺寸有效时才使用它
+          if (tempMaxDim > 0 && isFinite(tempMaxDim) && 
+              isFinite(tempBox.min.x) && isFinite(tempBox.max.x) && 
+              isFinite(tempBox.min.y) && isFinite(tempBox.max.y) &&
+              isFinite(tempBox.min.z) && isFinite(tempBox.max.z)) {
+            boundingBox.copy(tempBox);
+            hasValidPoints = true;
+            boundingBoxValid = true;
+          }
+        } catch (e) {
+          // 静默失败，进入下一阶段
+        }
+        
+        // 阶段2：如果内置方法失败，尝试通过采样点计算（较慢但更可靠）
+        if (!boundingBoxValid) {
           try {
-            // 备用方式：遍历点采样
+            // 扩大样本量以提高准确性
+            const increasedSampleSize = Math.min(splatCount, 5000); // 采样更多点
+            const increasedStep = Math.max(1, Math.floor(splatCount / increasedSampleSize));
+            
+            // 使用临时向量和多种验证方法
             const tempVector = new THREE.Vector3();
+            const pointPositions = []; // 存储有效点用于后续处理
             let validPointCount = 0;
             
-            for (let i = 0; i < splatCount; i += step) {
+            // 第一遍：收集有效点坐标
+            for (let i = 0; i < splatCount; i += increasedStep) {
               try {
-                // 安全地获取点位置
                 const center = splatMesh.getSplatCenter(i);
                 if (center && typeof center === 'object' && 
                     'x' in center && 'y' in center && 'z' in center) {
-                  // 检查值的有效性
                   if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) {
+                    // 存储Y轴范围信息
                     yMin = Math.min(yMin, center.y);
                     yMax = Math.max(yMax, center.y);
-                    tempVector.set(center.x, center.y, center.z);
-                    boundingBox.expandByPoint(tempVector);
+                    
+                    // 存储有效点
+                    pointPositions.push({x: center.x, y: center.y, z: center.z});
                     validPointCount++;
-                    hasValidPoints = true;
                   }
                 }
               } catch (e) {
-                // 忽略单个点的错误，继续处理其他点
+                // 忽略单个点错误
+                continue;
               }
               
-              pointCount++;
-              if (pointCount >= sampleSize || validPointCount > 100) break;
+              // 如果已有足够多的点，提前结束
+              if (validPointCount > 200) break;
             }
             
-            console.log(`通过点采样计算边界框: 成功获取${validPointCount}个有效点`);
+            // 第二遍：计算边界框和排除异常值
+            if (validPointCount > 0) {
+              hasValidPoints = true;
+              
+              // 排除明显的异常值
+              if (validPointCount > 10) {
+                // 计算点的平均位置
+                let avgX = 0, avgY = 0, avgZ = 0;
+                pointPositions.forEach(p => {
+                  avgX += p.x;
+                  avgY += p.y;
+                  avgZ += p.z;
+                });
+                avgX /= validPointCount;
+                avgY /= validPointCount;
+                avgZ /= validPointCount;
+                
+                // 计算标准差
+                let stdDevSum = 0;
+                pointPositions.forEach(p => {
+                  const dx = p.x - avgX;
+                  const dy = p.y - avgY;
+                  const dz = p.z - avgZ;
+                  stdDevSum += dx*dx + dy*dy + dz*dz;
+                });
+                const stdDev = Math.sqrt(stdDevSum / validPointCount);
+                const threshold = stdDev * 3; // 3个标准差范围
+                
+                // 使用非异常值点构建边界框
+                pointPositions.forEach(p => {
+                  const dx = p.x - avgX;
+                  const dy = p.y - avgY;
+                  const dz = p.z - avgZ;
+                  const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                  
+                  // 仅包括非异常点
+                  if (distance <= threshold) {
+                    tempVector.set(p.x, p.y, p.z);
+                    boundingBox.expandByPoint(tempVector);
+                    boundingBoxValid = true;
+                  }
+                });
+              } else {
+                // 点过少时直接使用所有点
+                pointPositions.forEach(p => {
+                  tempVector.set(p.x, p.y, p.z);
+                  boundingBox.expandByPoint(tempVector);
+                });
+                boundingBoxValid = true;
+              }
+            }
           } catch (e2) {
-            console.warn('点采样计算边界框完全失败:', e2);
+            // 静默失败，进入下一阶段
           }
         }
         
-        // 如果没有有效点，使用默认边界框
-        if (!hasValidPoints) {
-          console.warn('无法获取有效点数据，使用默认边界框');
-          boundingBox.min.set(-10, -10, -10);
-          boundingBox.max.set(10, 10, 10);
+        // 阶段3：如果前两阶段都失败，使用更适合各种尺寸的默认边界盒
+        if (!boundingBoxValid || !hasValidPoints) {
+          // 使用适中的默认尺寸，便于处理各种情况
+          const defaultSize = 1.0; // 使用单位尺寸1作为基础
+          
+          // 检查文件名来估计合理的默认尺寸
+          const fileName = currentFile?.name || currentFile?.path || '';
+          let sizeFactor = 1.0; // 默认使用原始大小
+          
+          // 根据文件名调整默认大小，但保留原始比例
+          if (fileName.toLowerCase().includes('large') || 
+              fileName.toLowerCase().includes('big')) {
+            sizeFactor = 5.0; // 大型模型使用较大尺寸
+          } else if (fileName.toLowerCase().includes('small') || 
+                     fileName.toLowerCase().includes('tiny')) {
+            sizeFactor = 0.2; // 小型模型使用较小尺寸
+          }
+          
+          // 设置边界盒
+          boundingBox.min.set(-defaultSize*sizeFactor/2, -defaultSize*sizeFactor/2, -defaultSize*sizeFactor/2);
+          boundingBox.max.set(defaultSize*sizeFactor/2, defaultSize*sizeFactor/2, defaultSize*sizeFactor/2);
+          boundingBoxValid = true;
+          
+          console.log(`使用默认边界盒：尺寸 ${defaultSize * sizeFactor}`);
         }
         
         // 计算模型大小和理想缩放比例
@@ -377,39 +471,141 @@ function adjustCameraToModel() {
         const maxDimForScaling = Math.max(sizeForScaling.x, sizeForScaling.y, sizeForScaling.z);
         
         // 检查计算出的尺寸是否有效
-        if (maxDimForScaling <= 0 || !isFinite(maxDimForScaling)) {
-          console.warn('计算模型尺寸出错，使用默认值');
-          // 使用默认的缩放比例而不是基于尺寸计算
-          scene.scale.set(1, 1, 1); // 使用原始大小
-        } else {
-          // PLY高斯点云模型通常偏大，需要缩小
-          const idealSize = 10; // 理想尺寸
-          
-          // 安全计算缩放因子，避免除以零和无穷大
-          let scaleFactor = 1.0; // 默认不缩放
-          
-          if (maxDimForScaling > 20) {
-            // 计算缩放因子，缩小模型
-            scaleFactor = idealSize / maxDimForScaling;
-            // 限制缩放因子在合理范围
-            scaleFactor = Math.max(0.01, Math.min(scaleFactor, 1.0));
-            // 应用缩放
-            scene.scale.multiplyScalar(scaleFactor);
-            // 高斯点云模型缩小
-          } else if (maxDimForScaling < 5 && maxDimForScaling > 0.1) {
-            // 如果模型过小但不是极小值，适当放大
-            scaleFactor = Math.min(idealSize / maxDimForScaling, 10); // 限制最大放大倍数为10倍
-            scene.scale.multiplyScalar(scaleFactor);
-            // 高斯点云模型放大
-          }
+        // 完全不进行缩放，使用原始模型尺寸
+        // 无论模型大小如何，都保持原始比例
+        scene.scale.set(1, 1, 1); // 始终使用原始大小
+        
+        // 特殊处理：仅对极端尺寸模型进行缩放调整，确保可见性
+        // 对于非常小的模型必须放大，否则完全看不见
+        if (maxDimForScaling < 0.01) {
+          // 微小模型强制放大
+          const scaleUpFactor = Math.min(1.0 / maxDimForScaling, 500);
+          scene.scale.multiplyScalar(scaleUpFactor);
+          console.log(`特殊处理：微小模型(${maxDimForScaling})放大${scaleUpFactor}倍`);
+        } else if (maxDimForScaling < 0.1) {
+          // 小模型适当放大
+          const scaleUpFactor = Math.min(0.5 / maxDimForScaling, 100);
+          scene.scale.multiplyScalar(scaleUpFactor);
+          console.log(`特殊处理：小模型(${maxDimForScaling})放大${scaleUpFactor}倍`);
+        } else if (maxDimForScaling > 1000) {
+          // 超大模型略微缩小
+          scene.scale.multiplyScalar(0.2);
+          console.log(`特殊处理：超大模型(${maxDimForScaling})缩小到20%`);
         }
         
-        // 检查模型是否倒置并调整
-        if (yMin < -yMax && Math.abs(yMin) > 1) {
-          // 模型可能倒置，旋转180度
-          scene.rotation.x = Math.PI;
-          scene.position.y = -scene.position.y;
-          console.log('已自动校正模型方向');
+        
+        // 全面增强倒置检测和修正逻辑
+        // 使用多种综合方法检测模型方向，确保正确显示
+        let needsFlip = false;
+        
+        // 方法1: 扩展的Y轴范围分析，更敏感地检测倒置情况
+        // 1.1: 基本检查 - 下方延展比上方更多
+        if (yMin < -yMax && Math.abs(yMin) > 0.5) {
+            needsFlip = true;
+        }
+        // 1.2: 增加检查 - 下方极端值远大于上方
+        if (Math.abs(yMin) > Math.abs(yMax) * 2) {
+            needsFlip = true;
+        }
+        
+        // 方法2: 彻底的点分布统计分析
+        let pointsBelow = 0;
+        let pointsAbove = 0;
+        let lowYPoints = 0;     // 非常低的点
+        let highYPoints = 0;    // 非常高的点
+        let centerYPoints = 0;  // 中间区域的点
+        
+        // 增加采样点数，确保准确性
+        const sampleSizeForFlip = Math.min(splatCount, 3000); // 采样更多点
+        const sampleStepForFlip = Math.max(1, Math.floor(splatCount / sampleSizeForFlip));
+        
+        // 计算Y轴的中值和四分位值，用于更准确的统计
+        let yValues = [];
+        let totalYSum = 0;
+        
+        // 第一遍扫描：收集Y值样本
+        for (let i = 0; i < splatCount; i += sampleStepForFlip * 2) {
+            try {
+                const center = splatMesh.getSplatCenter(i);
+                if (center && typeof center === 'object' && 'y' in center) {
+                    if (isFinite(center.y)) {
+                        yValues.push(center.y);
+                        totalYSum += center.y;
+                    }
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        
+        // 计算统计指标
+        const yMean = yValues.length > 0 ? totalYSum / yValues.length : 0;
+        const yDeviationSum = yValues.reduce((sum, y) => sum + Math.abs(y - yMean), 0);
+        const yAvgDeviation = yValues.length > 0 ? yDeviationSum / yValues.length : 1;
+        
+        // 第二遍扫描：详细分析点的分布
+        for (let i = 0; i < splatCount; i += sampleStepForFlip) {
+            try {
+                const center = splatMesh.getSplatCenter(i);
+                if (center && typeof center === 'object' && 'y' in center) {
+                    // 基本分类：上半空间vs下半空间
+                    if (center.y < 0) pointsBelow++;
+                    else pointsAbove++;
+                    
+                    // 细分类别：极低/极高/中间
+                    if (center.y < yMean - yAvgDeviation * 2) {
+                        lowYPoints++;
+                    } else if (center.y > yMean + yAvgDeviation * 2) {
+                        highYPoints++;
+                    } else {
+                        centerYPoints++;
+                    }
+                }
+            } catch (e) {
+                continue;
+            }
+        }
+        
+        // 方法2.1: 如果下半空间点数明显多于上半空间
+        if (pointsBelow > pointsAbove * 1.25 && pointsBelow > 50) {
+            needsFlip = true;
+        }
+        
+        // 方法2.2: 如果极低区域点数明显多于极高区域
+        if (lowYPoints > highYPoints * 1.5 && lowYPoints > centerYPoints * 0.8) {
+            needsFlip = true;
+        }
+        
+        // 方法3: 观察模型的"底部密度"
+        // 假设大多数模型底部比顶部更密集
+        // 计算最低20%和最高20%区域的点密度
+        
+        // 如果底部明显比顶部密集，但Y值显示底部在上方，则需要翻转
+        if (lowYPoints > 100 && lowYPoints > highYPoints * 1.2 && yMean < 0) {
+            needsFlip = true;
+        }
+        
+        // 方法4: 获取当前模型名称，对特殊模型进行专门处理
+        const currentFilePath = currentFile?.path || currentFile?.name || '';
+        if (currentFilePath.toLowerCase().includes('landscape') || 
+            currentFilePath.toLowerCase().includes('terrain') ||
+            currentFilePath.toLowerCase().includes('scan')) {
+            // 对于地形模型或扫描模型，使用更严格的检测
+            if (pointsBelow > pointsAbove * 1.1) {
+                needsFlip = true;
+            }
+        }
+        
+        // 执行翻转
+        if (needsFlip) {
+            // 使用沿X轴180度旋转实现模型翻转
+            scene.rotation.x = Math.PI;
+            
+            // 调整Y轴位置确保正确居中
+            scene.position.y = -scene.position.y;
+            
+            // 修正后再次更新包围盒
+            boundingBox.setFromObject(scene);
         }
         
         // 计算边界盒的大小和中心
@@ -418,15 +614,24 @@ function adjustCameraToModel() {
         const center = new THREE.Vector3();
         boundingBox.getCenter(center);
         
-        // 确保模型居中
-        if (Math.abs(center.x) > 0.1 || Math.abs(center.y) > 0.1 || Math.abs(center.z) > 0.1) {
-          // 调整位置使模型居中
-          scene.position.sub(center);
-          console.log('已将高斯点云模型居中:', scene.position);
-          // 更新模型边界
-          boundingBox.setFromObject(scene);
-          boundingBox.getCenter(center);
+        // 始终进行居中操作，确保模型处于场景中心
+        // 使用更严格的居中阈值，即使轻微偏移也进行校正
+        scene.position.sub(center);
+        
+        // 在缩放之后进行一次额外的居中确认
+        // 获取模型当前的世界坐标边界
+        const updatedBox = new THREE.Box3().setFromObject(scene);
+        const updatedCenter = new THREE.Vector3();
+        updatedBox.getCenter(updatedCenter);
+        
+        // 如果中心点不在(0,0,0)附近，进行第二次校正
+        if (updatedCenter.length() > 0.05) {
+            scene.position.sub(updatedCenter);
         }
+        
+        // 更新模型边界以便后续计算
+        boundingBox.setFromObject(scene);
+        boundingBox.getCenter(center);
         
         // 调整相机位置以适配整个模型 - 使用与重置视角一致的配置
         const cameraMaxDim = Math.max(modelSize.x, modelSize.y, modelSize.z);
@@ -444,18 +649,52 @@ function adjustCameraToModel() {
             distance = 20; // 默认相机距离
           }
           
-          // 限制在合理范围内
-          const finalDistance = Math.max(Math.min(distance, 100), 5);
+          // 调整相机距离，使原始尺寸的模型能完整显示在视野内
+          // 根据模型的真实大小自动调整相机距离
+          const minDistance = Math.max(diagonal * 2, 5); // 确保距离足够远以查看整个模型
+          const maxDistance = Math.min(diagonal * 10, 1000); // 允许非常远的视距以适应大型模型
           
-          console.log('设置相机距离:', finalDistance);
+          // 根据原始模型尺寸计算适当的距离
+          // 针对不同尺寸的模型选择合适的相机位置
+          let finalDistance;
+          
+          if (diagonal > 100) {
+              // 特大模型
+              finalDistance = diagonal * 2; // 减小相机距离，让大模型更近
+          } else if (diagonal > 10) {
+              // 中等模型
+              finalDistance = diagonal * 3;
+          } else if (diagonal < 0.01) {
+              // 极微小模型（很难看见的）
+              finalDistance = 1; // 使用固定近距离
+          } else if (diagonal < 0.1) {
+              // 微小模型（很小但可见）
+              finalDistance = 2; // 使用固定近距离
+          } else if (diagonal < 1.0) {
+              // 小尺寸模型
+              finalDistance = 3; // 使用固定近距离
+          } else {
+              // 普通尺寸模型
+              finalDistance = Math.max(diagonal * 3, minDistance);
+          }
+          
+          // 对于极小模型，强制使用近距离
+          if (maxDimForScaling < 0.1) {
+              console.log(`为小模型(${maxDimForScaling})调整相机距离: ${finalDistance}`);
+          }
+          
+          // 确保相机距离在合理范围内
+          finalDistance = Math.max(Math.min(finalDistance, maxDistance), minDistance);
           
           // 将相机指向模型中心
           if (viewer.controls) {
             viewer.controls.target.copy(center);
           }
           
-          // 使用更可靠的相机位置
-          const cameraDirection = new THREE.Vector3(1, 0.8, 1).normalize();
+          // 使用更佳的观察角度，视角略微降低以便更好地观察放大后的模型
+          // 调整观察角度，使其更接近人眼自然观察物体的习惯
+          // x增大：更偏向侧面观察；y减小：降低观察角度；z保持：确保正面视图
+          const cameraDirection = new THREE.Vector3(1.2, 0.6, 1).normalize();
           viewer.camera.position.copy(center).addScaledVector(cameraDirection, finalDistance);
           viewer.camera.lookAt(center);
           

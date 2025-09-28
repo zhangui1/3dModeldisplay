@@ -117,12 +117,19 @@ body {
     width: 100%;
     overflow: hidden;
     background: radial-gradient(circle at center, #101010 0%, #000000 100%);
+    display: flex;
+    justify-content: center; /* 水平居中 */
+    align-items: center; /* 垂直居中 */
 }
 
 #model-canvas {
     width: 100%;
     height: 100%;
     display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* 中心点对齐 */
 }
 
 /* 模型控制面板 */

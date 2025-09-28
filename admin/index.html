@@ -51,6 +51,7 @@
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="filterDropdown">
                         <li><a class="dropdown-item" href="#" data-filter="all">所有格式</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="ply">PLY</a></li>
                         <li><a class="dropdown-item" href="#" data-filter="glb">GLB/GLTF</a></li>
                         <li><a class="dropdown-item" href="#" data-filter="obj">OBJ</a></li>
                         <li><a class="dropdown-item" href="#" data-filter="stl">STL</a></li>
@@ -61,6 +62,9 @@
                 <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-plus-lg"></i> 添加模型
                 </button>
+                <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#batchDeleteModal">
+                    <i class="bi bi-trash"></i> 批量删除
+                </button>
             </div>
         </div>
 
@@ -68,13 +72,13 @@
         <div class="card">
             <div class="card-header">
                 <div class="row">
-                    <div class="col-1">#</div>
+                    <div class="col-1">序号</div>
                     <div class="col-2">预览图</div>
                     <div class="col-2">名称</div>
                     <div class="col-3">描述</div>
                     <div class="col-1">格式</div>
                     <div class="col-1">顺序</div>
-                    <div class="col-2">操作</div>
+                    <div class="col-2 text-center">操作</div>
                 </div>
             </div>
             <div class="card-body" id="modelList">
@@ -185,6 +189,70 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量删除模态框 -->
+    <div class="modal fade" id="batchDeleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">批量删除模型</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>请选择要批量删除的模型格式：</p>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteAll" value="all">
+                        <label class="form-check-label" for="deleteAll">
+                            所有格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deletePly" value="ply" checked>
+                        <label class="form-check-label" for="deletePly">
+                            PLY 格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteGlb" value="glb">
+                        <label class="form-check-label" for="deleteGlb">
+                            GLB/GLTF 格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteObj" value="obj">
+                        <label class="form-check-label" for="deleteObj">
+                            OBJ 格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteStl" value="stl">
+                        <label class="form-check-label" for="deleteStl">
+                            STL 格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteFbx" value="fbx">
+                        <label class="form-check-label" for="deleteFbx">
+                            FBX 格式
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="deleteFormat" id="deleteSog" value="sog">
+                        <label class="form-check-label" for="deleteSog">
+                            SOG 格式
+                        </label>
+                    </div>
+                    <div class="alert alert-danger mt-3">
+                        <i class="bi bi-exclamation-triangle-fill"></i> 警告：此操作将删除所选格式的<strong>所有</strong>模型，且不可恢复！
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmBatchDeleteBtn">确认删除</button>
                 </div>
             </div>
         </div>

@@ -328,6 +328,73 @@ app.post('/api/models/reorder', (req, res) => {
     }
 });
 
+// 批量删除模型
+app.post('/api/models/batch-delete', (req, res) => {
+    try {
+        const { format } = req.body;
+        
+        if (!format) {
+            return res.status(400).json({ message: '缺少必要的格式参数' });
+        }
+        
+        // 读取现有数据
+        const data = fs.readFileSync(dataFilePath, 'utf8');
+        const models = JSON.parse(data);
+        
+        // 筛选要删除的模型
+        let modelsToDelete;
+        let remainingModels;
+        
+        if (format === 'all') {
+            modelsToDelete = [...models];
+            remainingModels = [];
+        } else {
+            modelsToDelete = models.filter(model => 
+                model.format.toLowerCase() === format.toLowerCase()
+            );
+            remainingModels = models.filter(model => 
+                model.format.toLowerCase() !== format.toLowerCase()
+            );
+        }
+        
+        if (modelsToDelete.length === 0) {
+            return res.status(404).json({ message: '未找到符合条件的模型' });
+        }
+        
+        // 删除文件
+        modelsToDelete.forEach(model => {
+            // 删除模型文件
+            const modelPath = path.join(__dirname, 'public', model.path);
+            if (fs.existsSync(modelPath)) {
+                fs.unlinkSync(modelPath);
+            }
+            
+            // 删除缩略图文件
+            const thumbnailPath = path.join(__dirname, 'public', model.thumbnail);
+            if (fs.existsSync(thumbnailPath)) {
+                fs.unlinkSync(thumbnailPath);
+            }
+        });
+        
+        // 更新顺序号
+        remainingModels.forEach((model, idx) => {
+            model.order = idx + 1;
+        });
+        
+        // 保存数据
+        fs.writeFileSync(dataFilePath, JSON.stringify(remainingModels, null, 2));
+        
+        res.json({ 
+            message: '批量删除成功', 
+            deletedCount: modelsToDelete.length,
+            remainingCount: remainingModels.length
+        });
+    } catch (error) {
+        console.error('Error batch deleting models:', error);
+        res.status(500).json({ message: '批量删除模型失败' });
+    }
+});
+
 // 启动服务器
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);

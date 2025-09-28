@@ -5,7 +5,7 @@ import * as THREE from 'three';
 // 存储控制状态
 let autoRotateEnabled = true; // 默认开启自动旋转
 let autoRotateInterval = null;
-const AUTO_ROTATE_SPEED = 0.005; // 正值表示从右到左顺时针旋转，与标准模型保持一致
+const AUTO_ROTATE_SPEED = 0.005; // 稍微降低PLY模型的旋转速度
 
 /**
  * 初始化PLY模型的控制按钮功能
@@ -150,12 +150,40 @@ export function resetCameraView(viewer) {
       const diagonal = Math.sqrt(size.x * size.x + size.y * size.y + size.z * size.z);
       const fov = viewer.camera.fov * (Math.PI / 180);
       
-      // 使用更大的系数，确保显示整个模型
-      let cameraDistance = Math.abs(diagonal / (2 * Math.tan(fov / 2))) * 3.0;
-      cameraDistance = Math.max(cameraDistance, Math.max(maxDim * 3.0, 5));
+      // 调整相机距离，与主视图保持一致，适应原始尺寸模型
+      let cameraDistance;
       
-      // 设置相机位置
-      const direction = new THREE.Vector3(1, 0.5, 1).normalize();
+      // 根据模型的真实大小自动调整相机距离
+      const minDistance = Math.max(diagonal * 2, 5); // 确保距离足够远以查看整个模型
+      const maxDistance = Math.min(diagonal * 10, 1000); // 允许非常远的视距以适应大型模型
+      
+      // 根据原始模型尺寸计算适当的距离
+      if (diagonal > 100) {
+          // 特大模型
+          cameraDistance = diagonal * 2; // 减小相机距离，让大模型更近
+      } else if (diagonal > 10) {
+          // 中等模型
+          cameraDistance = diagonal * 3;
+      } else if (diagonal < 0.01) {
+          // 极微小模型（很难看见的）
+          cameraDistance = 1; // 使用固定近距离
+      } else if (diagonal < 0.1) {
+          // 微小模型（很小但可见）
+          cameraDistance = 2; // 使用固定近距离
+      } else if (diagonal < 1.0) {
+          // 小尺寸模型
+          cameraDistance = 3; // 使用固定近距离
+      } else {
+          // 普通尺寸模型
+          cameraDistance = Math.max(diagonal * 3, 5);
+      }
+      
+      // 确保相机距离在合理范围内
+      cameraDistance = Math.max(Math.min(cameraDistance, maxDistance), minDistance);
+      
+      // 使用更佳的观察角度，与主视图设置保持一致
+      // 调整观察角度，使其更接近人眼自然观察物体的习惯
+      const direction = new THREE.Vector3(1.2, 0.6, 1).normalize();
       viewer.camera.position.copy(center).addScaledVector(direction, cameraDistance);
       
       // 设置相机看向中心点

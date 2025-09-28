@@ -14,6 +14,7 @@ function init() {
     document.getElementById('uploadBtn').addEventListener('click', uploadModel);
     document.getElementById('saveEditBtn').addEventListener('click', saveModelChanges);
     document.getElementById('confirmDeleteBtn').addEventListener('click', deleteModel);
+    document.getElementById('confirmBatchDeleteBtn').addEventListener('click', batchDeleteModels);
     document.getElementById('searchBtn').addEventListener('click', searchModels);
     
     // 筛选事件
@@ -106,13 +107,15 @@ function renderModelList(modelList) {
                         <i class="bi bi-arrow-down"></i>
                     </button>
                 </div>
-                <div class="col-2">
-                    <button class="btn btn-sm btn-primary" onclick="editModel(${model.id})">
-                        <i class="bi bi-pencil"></i> 编辑
-                    </button>
-                    <button class="btn btn-sm btn-danger ms-1" onclick="confirmDelete(${model.id})">
-                        <i class="bi bi-trash"></i> 删除
-                    </button>
+                <div class="col-2 text-center">
+                    <div class="d-flex justify-content-center">
+                        <button class="btn btn-sm btn-primary me-2" onclick="editModel(${model.id})">
+                            <i class="bi bi-pencil"></i> 编辑
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete(${model.id})">
+                            <i class="bi bi-trash"></i> 删除
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -402,6 +405,63 @@ function simulateUpload() {
             resolve();
         }, 1000);
     });
+}
+
+// 批量删除模型
+async function batchDeleteModels() {
+    // 获取选中的格式
+    const selectedFormat = document.querySelector('input[name="deleteFormat"]:checked').value;
+    
+    try {
+        // 显示删除进度提示
+        showNotification('正在批量删除模型...', 'info');
+        
+        // 筛选要删除的模型
+        let modelsToDelete;
+        if (selectedFormat === 'all') {
+            modelsToDelete = [...models]; // 复制整个数组
+        } else {
+            modelsToDelete = models.filter(model => 
+                model.format.toLowerCase() === selectedFormat.toLowerCase()
+            );
+        }
+        
+        if (modelsToDelete.length === 0) {
+            showNotification('没有找到符合条件的模型！', 'warning');
+            return;
+        }
+        
+        // 发送批量删除请求到服务器
+        const response = await fetch('/api/models/batch-delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                format: selectedFormat
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // 重新加载模型列表
+        await loadModelsList();
+        
+        // 关闭模态框
+        const modalElement = document.getElementById('batchDeleteModal');
+        const modal = bootstrap.Modal.getInstance(modalElement);
+        modal.hide();
+        
+        // 提示成功
+        showNotification(`成功删除了 ${result.deletedCount || modelsToDelete.length} 个模型！`, 'success');
+    } catch (error) {
+        console.error('批量删除失败:', error);
+        showNotification('批量删除失败，请重试！', 'danger');
+    }
 }
 
 // 显示通知
