@@ -62,7 +62,7 @@ export function initPlyControls(viewer) {
     if (e.key === 'f') toggleFullscreen(viewer);
   });
   
-  console.log('PLY控制按钮功能已初始化');
+  // PLY控制按钮功能初始化完成
 }
 
 /**
@@ -88,14 +88,14 @@ export function toggleAutoRotate(viewer) {
       }
     }, 16); // 约60fps
     
-    console.log('PLY模型自动旋转已开启');
+    // 自动旋转已开启
   } else {
     // 停止自动旋转
     if (autoRotateInterval) {
       clearInterval(autoRotateInterval);
       autoRotateInterval = null;
     }
-    console.log('PLY模型自动旋转已关闭');
+    // 自动旋转已关闭
   }
 }
 
@@ -107,7 +107,7 @@ export function resetCameraView(viewer) {
   if (!viewer || !viewer.camera || !viewer.controls) return;
   
   try {
-    console.log('正在重置PLY模型相机视角...');
+    // 重置相机视角
     
     // 获取模型边界和中心
     if (viewer.getSplatMesh && viewer.getSplatMesh()) {
@@ -117,7 +117,7 @@ export function resetCameraView(viewer) {
       // 确保有点数据
       const splatCount = splatMesh.getSplatCount();
       if (splatCount <= 0) {
-        console.warn('无法获取点云数据，使用默认重置');
+        // 无法获取点云数据，使用默认重置
         defaultResetCamera(viewer);
         return;
       }
@@ -168,17 +168,12 @@ export function resetCameraView(viewer) {
       viewer.controls.update();
       viewer.forceRenderNextFrame();
       
-      console.log('PLY模型相机视角已重置', {
-        center: center,
-        size: size,
-        cameraDistance: cameraDistance,
-        position: viewer.camera.position
-      });
+      // 相机视角已重置
     } else {
       defaultResetCamera(viewer);
     }
   } catch (error) {
-    console.error('重置相机视角时出错:', error);
+    // 重置相机视角时出错
     defaultResetCamera(viewer);
   }
 }
@@ -214,13 +209,12 @@ export function toggleFullscreen(viewer) {
   const fullscreenBtn = document.getElementById('fullscreen');
   
   if (!container) {
-    console.error('找不到查看器容器');
+    // 找不到查看器容器
     return;
   }
   
   try {
     if (!document.fullscreenElement) {
-      console.log('进入全屏模式');
       // 进入全屏
       if (container.requestFullscreen) {
         container.requestFullscreen();
@@ -236,7 +230,6 @@ export function toggleFullscreen(viewer) {
         fullscreenBtn.style.backgroundColor = '#1e88e5'; // 蓝色背景
       }
     } else {
-      console.log('退出全屏模式');
       // 退出全屏
       if (document.exitFullscreen) {
         document.exitFullscreen();

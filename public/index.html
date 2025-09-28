@@ -102,58 +102,32 @@
         </div>
     </footer>
 
-    <!-- 先加载THREE.js库，确保有全局THREE对象 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+    <!-- 使用ES模块方式加载THREE.js -->
+    <!-- 不再需要通过传统脚本标签加载THREE.js，完全使用ES模块方式 -->
     
-    <!-- 确保THREE.js加载完成后再加载其他依赖 -->
-    <script>
-        // 确认THREE.js已加载
-        if (typeof THREE === 'undefined') {
-            console.error('THREE.js未成功加载，请检查网络连接');
-        } else {
-            console.log('THREE.js已成功加载，版本:', THREE.REVISION);
-        }
-    </script>
-    
-    <!-- 各种格式的模型加载器 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/DRACOLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/OBJLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/STLLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/FBXLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/libs/fflate.min.js"></script>
-    
-    <!-- 确保加载器都已挂载到THREE对象上 -->
-    <script>
-        // 检查必要的加载器是否可用
-        setTimeout(function() {
-            const components = ['OrbitControls', 'GLTFLoader', 'OBJLoader', 'STLLoader', 'FBXLoader'];
-            components.forEach(name => {
-                if (!THREE[name]) {
-                    console.error(`THREE.${name} 未成功加载，可能会影响功能`);
-                }
-            });
-        }, 500);
-    </script>
-    
-    <!-- 然后通过importmap加载模块版本 -->
+    <!-- 定义importmap，指定模块加载路径 -->
     <script type="importmap">
         {
             "imports": {
-                "three": "./js/lib/three.module.js",
-                "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/GLTFLoader.js",
+                "three": "https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.module.js",
+                "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/controls/OrbitControls.js",
+                "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/GLTFLoader.js", 
                 "three/examples/jsm/loaders/DRACOLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/DRACOLoader.js",
                 "three/examples/jsm/loaders/OBJLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/OBJLoader.js",
                 "three/examples/jsm/loaders/STLLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/STLLoader.js",
                 "three/examples/jsm/loaders/FBXLoader.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/loaders/FBXLoader.js",
-                "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.149.0/examples/jsm/controls/OrbitControls.js",
                 "@mkkellogg/gaussian-splats-3d": "./js/lib/gaussian-splats-3d.module.js"
             }
         }
     </script>
     
-    <!-- 主应用脚本改为模块化方式加载 -->
+    <!-- 初始化确认脚本，使用ES模块方式检查THREE是否可用 -->
+    <script type="module">
+        import * as THREE from 'three';
+        console.log('THREE.js ES模块已成功加载，版本:', THREE.REVISION);
+    </script>
+    
+    <!-- 主应用脚本使用模块化方式加载 -->
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

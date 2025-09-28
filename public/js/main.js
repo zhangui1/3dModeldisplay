@@ -50,6 +50,11 @@ function init() {
       createThumbnails();
       loadModel(models[currentModelIndex]);
       updateModelInfo(models[currentModelIndex]);
+    } else {
+      // 隐藏加载动画
+      hideLoading();
+      // 显示无模型提示
+      showNoModelsMessage();
     }
   });
 
@@ -178,30 +183,25 @@ function resetControlButtons() {
     }
   }
   
-  console.log('控制按钮已重置并绑定事件');
+  // 控制按钮已重置并绑定事件
 }
 
 // 为当前模型重置相机
 function resetCameraForCurrentModel() {
   const m = loadedModels[models[currentModelIndex]?.id];
   if (m && m.object) {
-    console.log('重置相机视角', m);
     resetCameraForModel(m.object);
   } else if (m && m.type === 'gaussian-splats' && m.viewer) {
     // 如果是高斯点云模型，使用其专用的重置函数
-    console.log('重置高斯点云相机视角');
     const plyControls = PlyViewer.getViewer();
     if (plyControls && typeof plyControls.resetCameraView === 'function') {
       plyControls.resetCameraView();
     }
-  } else {
-    console.warn('找不到当前模型，无法重置视角');
   }
 }
 
 // 语言切换功能已移至languageSwitch.js
 function initLanguageSwitch() {
-  console.log('语言切换功能已移至languageSwitch.js');
   // 此函数保留为空以保持兼容性，实际功能在languageSwitch.js中实现
 }
 
@@ -222,7 +222,6 @@ function toggleFullscreen() {
   }
   
   if (!container) {
-    console.error('找不到可全屏的容器');
     return;
   }
   
@@ -231,7 +230,6 @@ function toggleFullscreen() {
   
   if (!document.fullscreenElement) {
     // 进入全屏
-    console.log('进入全屏模式', container);
     try {
       if (container.requestFullscreen) {
         container.requestFullscreen();
@@ -247,11 +245,10 @@ function toggleFullscreen() {
         fullscreenBtn.style.backgroundColor = '#1e88e5';
       }
     } catch (e) {
-      console.error('进入全屏失败:', e);
+      // 静默失败
     }
   } else {
     // 退出全屏
-    console.log('退出全屏模式');
     try {
       if (document.exitFullscreen) {
         document.exitFullscreen();
@@ -267,7 +264,7 @@ function toggleFullscreen() {
         fullscreenBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
       }
     } catch (e) {
-      console.error('退出全屏失败:', e);
+      // 静默失败
     }
   }
   
@@ -375,9 +372,9 @@ function initScene() {
     camera.position.set(0, 1, 5); // 使用Z轴作为正视方向，Y轴向上，略微从上方观察
     controls.update();
   } catch (e) {
-    console.error('OrbitControls初始化失败', e);
+    // 创建一个空的控制器对象，避免错误
     controls = {
-      update: function() {},  // 提供一个空的update方法以避免错误
+      update: function() {},
       target: new THREE.Vector3(),
       autoRotate: false
     };
@@ -410,30 +407,35 @@ async function loadModelsList() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     models = await res.json();
   } catch (e) {
-    console.warn('无法获取模型列表', e);
+    // 获取模型列表失败，使用空数组
     models = [];
   }
 }
 
 function showLoadingIndicator(text = '加载中...') {
-  removeLoading();
-  const d = document.createElement('div');
-  d.id = 'loading-indicator';
-  d.textContent = text;
-  d.style.position = 'absolute';
-  d.style.left = '50%';
-  d.style.top = '50%';
-  d.style.transform = 'translate(-50%,-50%)';
-  d.style.padding = '8px 12px';
-  d.style.background = 'rgba(0,0,0,0.7)';
-  d.style.color = '#fff';
-  d.style.borderRadius = '6px';
-  document.querySelector('.model-container')?.appendChild(d);
+  // 不要提前移除其他加载指示器，只更新或创建
+  let indicator = document.getElementById('loading-indicator');
+  
+  if (!indicator) {
+    // 如果不存在，创建新的加载指示器
+    indicator = document.createElement('div');
+    indicator.id = 'loading-indicator';
+    indicator.style.position = 'absolute';
+    indicator.style.left = '50%';
+    indicator.style.top = '50%';
+    indicator.style.transform = 'translate(-50%,-50%)';
+    indicator.style.padding = '8px 12px';
+    indicator.style.background = 'rgba(0,0,0,0.7)';
+    indicator.style.color = '#fff';
+    indicator.style.borderRadius = '6px';
+    document.querySelector('.model-container')?.appendChild(indicator);
+  }
+  
+  // 更新文本内容
+  indicator.textContent = text;
 }
 
 function removeLoading() {
-  console.log('执行加载提示清理...');
-
   // 1. 移除loading-indicator元素
   const loadingIndicator = document.getElementById('loading-indicator');
   if (loadingIndicator) {
@@ -443,9 +445,7 @@ function removeLoading() {
       } else {
         loadingIndicator.remove();
       }
-      console.log('成功移除loading-indicator');
     } catch (e) {
-      console.warn('移除loading-indicator失败', e);
       // 备用方案：隐藏元素
       loadingIndicator.style.display = 'none';
     }
@@ -467,31 +467,28 @@ function removeLoading() {
   // 3. 立即查找并移除所有进度指示器
   try {
     const allProgressElements = document.querySelectorAll(progressSelectors.join(', '));
-    console.log(`找到${allProgressElements.length}个可能的加载指示器`);
     
     if (allProgressElements.length > 0) {
       allProgressElements.forEach(el => {
         try {
           if (el && el.parentNode) {
-            console.log('移除进度指示器:', el.className || el.id || el.tagName);
             el.parentNode.removeChild(el);
           } else if (el) {
             el.remove();
           }
         } catch (err) {
-          console.warn('移除进度指示器失败，改为隐藏', err);
           try {
             el.style.display = 'none';
             el.style.visibility = 'hidden';
             el.style.opacity = '0';
           } catch (styleErr) {
-            console.warn('无法隐藏元素', styleErr);
+            // 静默失败
           }
         }
       });
     }
   } catch (e) {
-    console.warn('清理进度指示器时出错', e);
+    // 静默失败
   }
   
   // 4. 设置延时清理，以捕获可能延迟出现的进度条
@@ -499,7 +496,6 @@ function removeLoading() {
     try {
       const lateProgressElements = document.querySelectorAll(progressSelectors.join(', '));
       if (lateProgressElements.length > 0) {
-        console.log('延时清理发现的进度指示器数量:', lateProgressElements.length);
         lateProgressElements.forEach(el => {
           if (el && el.parentNode) {
             el.parentNode.removeChild(el);
@@ -509,7 +505,7 @@ function removeLoading() {
         });
       }
     } catch (e) {
-      console.warn('延时清理进度指示器时出错', e);
+      // 静默失败
     }
     
     // 确保主加载遮罩也被隐藏
@@ -518,8 +514,6 @@ function removeLoading() {
   
   // 5. 立即隐藏主加载遮罩
   hideLoading();
-  
-  console.log('加载提示清理完成');
 }
 
 // 清理场景和资源
@@ -560,7 +554,7 @@ function loadModel(modelData) {
             isLoading = false;
           })
           .catch((error) => {
-            console.error('处理PLY模型时出错', error);
+            // 处理PLY模型时出错
             handleError(error.message || 'PLY处理错误');
             removeLoading();
             isLoading = false;
@@ -574,7 +568,7 @@ function loadModel(modelData) {
             isLoading = false;
           })
           .catch((error) => {
-            console.error(`处理${format}模型时出错`, error);
+            // 处理模型出错
             handleError(error.message || `${format}处理错误`);
             removeLoading();
             isLoading = false;
@@ -612,15 +606,26 @@ function loadModel(modelData) {
   const onProgress = (xhr) => {
     if (xhr.lengthComputable) {
       const percentComplete = (xhr.loaded / xhr.total) * 100;
+      const roundedPercent = Math.round(percentComplete);
       
-      // 当进度为100%时，立即移除加载指示器
-      if (percentComplete >= 100) {
-        // 立即移除加载提示
-        removeLoading();
+      if (roundedPercent >= 100) {
+        // 当进度为100%时，使用完成文本，但让回调来清理
+        showLoading('处理中，请稍候...');
+        showLoadingIndicator('处理中，请稍候...');
+        
+        // 为了处理某些情况下回调未被正确触发的情况，设置一个延时清理
+        setTimeout(() => {
+          // 如果还在显示100%或处理中，则清理它
+          const indicator = document.getElementById('loading-indicator');
+          if (indicator && (indicator.textContent.includes('100%') || 
+                           indicator.textContent.includes('处理中'))) {
+            removeLoading();
+          }
+        }, 3000); // 给予足够时间让回调发生，如果3秒后还在100%就强制清除
       } else {
-        // 更新加载进度
-        showLoading(`加载中: ${Math.round(percentComplete)}%`);
-        showLoadingIndicator(`加载中: ${Math.round(percentComplete)}%`);
+        // 正常更新加载进度
+        showLoading(`加载中: ${roundedPercent}%`);
+        showLoadingIndicator(`加载中: ${roundedPercent}%`);
       }
     }
   };
@@ -636,7 +641,7 @@ function loadModel(modelData) {
             isLoading = false;
           })
           .catch((error) => {
-            console.error('处理PLY模型时出错', error);
+            // 处理PLY模型时出错
             handleError(error.message || 'PLY处理错误');
             removeLoading();
             isLoading = false;
@@ -653,7 +658,7 @@ function loadModel(modelData) {
             isLoading = false;
           })
           .catch((error) => {
-            console.error(`处理${format}模型时出错`, error);
+            // 处理模型出错
             handleError(error.message || `${format}处理错误`);
             removeLoading();
             isLoading = false;
@@ -692,7 +697,7 @@ function loadModel(modelData) {
           },
           hideLoading: removeLoading
         }).catch((error) => {
-          console.error(`处理${format}模型时出错`, error);
+          // 处理模型出错
           handleError(error.message || `${format}处理错误`);
           removeLoading();
           isLoading = false;
@@ -704,7 +709,7 @@ function loadModel(modelData) {
         break;
     }
   } catch (e) {
-    console.error('loadModel 函数出错', e);
+    // loadModel 函数出错
     handleError(e.message || '未知错误');
   }
 }
@@ -714,9 +719,13 @@ async function loadPlyModel(path, modelId, onProgress) {
   return PlyViewer.loadPlyModel(path, modelId, onProgress, {
     onSuccess: (result) => {
       loadedModels[modelId] = result;
+      // 确保加载成功后清除加载提示
+      removeLoading();
     },
     onError: (errorMsg) => {
       showErrorOverlay(errorMsg || 'PLY模型加载失败');
+      // 确保加载失败后也清除加载提示
+      removeLoading();
     },
     showLoading,
     hideLoading,
@@ -729,9 +738,13 @@ async function loadSplatModel(path, modelId, onProgress) {
   return SplatsViewer.loadSplatModel(path, modelId, onProgress, {
     onSuccess: (result) => {
       loadedModels[modelId] = result;
+      // 确保加载成功后清除加载提示
+      removeLoading();
     },
     onError: (errorMsg) => {
       showErrorOverlay(errorMsg || '高斯点云模型加载失败');
+      // 确保加载失败后也清除加载提示
+      removeLoading();
     },
     showLoading,
     hideLoading,
@@ -760,9 +773,7 @@ function resetCameraForModel(object) {
   const center = box.getCenter(new THREE.Vector3());
   
   // 检查模型是否倒置 - 重置相机时再次检查
-  if (center.y < -size.y * 0.3) {
-    console.log('重置相机: 检测到模型可能倒置');
-  }
+  const isModelInverted = (center.y < -size.y * 0.3);
   
   // 将模型移动到世界坐标原点中心 - 确保居中显示
   // 检查模型中心是否与原点有明显偏差
@@ -772,7 +783,6 @@ function resetCameraForModel(object) {
     const offset = center.clone();
     object.position.sub(offset);
     object.updateMatrixWorld(true);
-    console.log('模型已重新居中，原中心点:', offset, '新位置:', object.position);
     
     // 重新计算包围盒和中心
     box.setFromObject(object);
@@ -795,15 +805,7 @@ function resetCameraForModel(object) {
   if (isModelTooLarge || isModelTooSmall) {
     // 计算合适的缩放比例 - 目标是让模型有一个合理的尺寸(10-20个单位大小)
     let targetSize = 10; // 期望的模型最大尺寸
-    let scaleFactor;
-    
-    if (isModelTooLarge) {
-      scaleFactor = targetSize / maxDim;
-      console.log(`模型过大(${maxDim})，缩放至${scaleFactor}倍`);
-    } else {
-      scaleFactor = targetSize / maxDim;
-      console.log(`模型过小(${maxDim})，放大至${scaleFactor}倍`);
-    }
+    let scaleFactor = targetSize / maxDim;
     
     // 应用缩放
     object.scale.multiplyScalar(scaleFactor);
@@ -813,8 +815,6 @@ function resetCameraForModel(object) {
     box.setFromObject(object);
     box.getCenter(center);
     box.getSize(size);
-    
-    console.log('模型已重新缩放，新尺寸:', {width: size.x, height: size.y, depth: size.z});
   }
   
   // 根据模型情况调整安全系数，使模型显示适合的大小
@@ -829,8 +829,6 @@ function resetCameraForModel(object) {
   cameraDistance = Math.max(cameraDistance, 2); // 确保最小距离
   cameraDistance = Math.min(cameraDistance, 1000); // 确保最大距离不会过大
   
-  console.log('模型尺寸:', {width: size.x, height: size.y, depth: size.z, diagonal, cameraDistance});
-  
   // 为不规则模型使用更好的视角
   let cameraPosition;
   if (isModelImbalanced) {
@@ -844,7 +842,6 @@ function resetCameraForModel(object) {
       center.y + cameraDistance * 0.5,  // 降低高度以更好地观察高大模型
       center.z + cameraDistance * angleZ
     );
-    console.log('使用不规则模型相机位置', {x: angleX, z: angleZ});
   } else {
     // 普通模型使用标准45度俯视角
     cameraPosition = new THREE.Vector3(
@@ -985,9 +982,6 @@ function toggleAutoRotate() {
     if (autoRotate) {
       // 确保旋转方向和速度正确
       controls.autoRotateSpeed = CONFIG.modelView.autoRotateSpeed;
-      console.log('开启自动旋转，方向：逆时针，速度：', Math.abs(CONFIG.modelView.autoRotateSpeed));
-    } else {
-      console.log('关闭自动旋转');
     }
   }
   
@@ -1042,6 +1036,47 @@ function showErrorOverlay(message) {
   
   // 8秒后自动移除错误提示
   setTimeout(() => errorElement.remove(), 8000);
+}
+
+// 显示无模型提示
+function showNoModelsMessage() {
+  // 确保移除任何加载提示
+  removeLoading();
+  hideLoading();
+  
+  // 创建提示元素
+  const noModelsElement = document.createElement('div');
+  noModelsElement.className = 'no-models-message';
+  noModelsElement.style.position = 'absolute';
+  noModelsElement.style.left = '50%';
+  noModelsElement.style.top = '50%';
+  noModelsElement.style.transform = 'translate(-50%, -50%)';
+  noModelsElement.style.background = 'rgba(0, 0, 0, 0.7)';
+  noModelsElement.style.color = '#fff';
+  noModelsElement.style.padding = '20px 30px';
+  noModelsElement.style.borderRadius = '8px';
+  noModelsElement.style.textAlign = 'center';
+  noModelsElement.style.zIndex = '1000';
+  noModelsElement.style.maxWidth = '80%';
+  noModelsElement.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+  
+  // 添加图标和文本
+  const iconElement = document.createElement('div');
+  iconElement.innerHTML = '<i class="bi bi-exclamation-circle" style="font-size: 48px; color: #ff9800;"></i>';
+  noModelsElement.appendChild(iconElement);
+  
+  const textElement = document.createElement('div');
+  textElement.textContent = '暂无模型，请添加！';
+  textElement.style.marginTop = '15px';
+  textElement.style.fontSize = '20px';
+  textElement.style.fontWeight = 'bold';
+  noModelsElement.appendChild(textElement);
+  
+  // 不再添加管理页面链接按钮
+  
+  // 添加到模型容器
+  const container = document.querySelector('.model-container') || document.body;
+  container.appendChild(noModelsElement);
 }
 
 // 暴露API供调试使用

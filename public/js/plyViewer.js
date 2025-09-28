@@ -28,7 +28,7 @@ export function loadPlyModel(path, modelId, onProgress, options = {}) {
   
   return new Promise(async (resolve, reject) => {
     try {
-      console.log('开始加载高斯点云模型:', path);
+      // 开始加载高斯点云模型
       
       // 清理旧的高斯点云查看器实例
       await cleanup();
@@ -395,12 +395,12 @@ function adjustCameraToModel() {
             scaleFactor = Math.max(0.01, Math.min(scaleFactor, 1.0));
             // 应用缩放
             scene.scale.multiplyScalar(scaleFactor);
-            console.log(`高斯点云模型缩小: ${maxDimForScaling} -> ${maxDimForScaling * scaleFactor}，缩放因子: ${scaleFactor}`);
+            // 高斯点云模型缩小
           } else if (maxDimForScaling < 5 && maxDimForScaling > 0.1) {
             // 如果模型过小但不是极小值，适当放大
             scaleFactor = Math.min(idealSize / maxDimForScaling, 10); // 限制最大放大倍数为10倍
             scene.scale.multiplyScalar(scaleFactor);
-            console.log(`高斯点云模型放大: ${maxDimForScaling} -> ${maxDimForScaling * scaleFactor}，缩放因子: ${scaleFactor}`);
+            // 高斯点云模型放大
           }
         }
         
@@ -557,7 +557,6 @@ export function cleanup() {
       if (PlyControls && PlyControls.cleanup) {
         try {
           PlyControls.cleanup();
-          console.log('PLY控制功能已清理');
         } catch (e) {
           console.warn('清理PLY控制功能时出错', e);
         }
@@ -570,7 +569,6 @@ export function cleanup() {
         if (viewer.selfDrivenModeRunning) {
           try {
             viewer.stop();
-            console.log('已停止渲染循环');
           } catch (stopError) {
             console.warn('停止渲染循环失败', stopError);
           }
@@ -587,19 +585,13 @@ export function cleanup() {
             const hasParentNode = containerExists && !!viewerContainer.parentNode;
             const parentNodeIsValid = hasParentNode && !!viewerContainer.parentNode.removeChild;
             
-            console.log('容器状态:', {
-              containerExists, 
-              hasParentNode, 
-              parentNodeIsValid,
-              parentNodeType: hasParentNode ? viewerContainer.parentNode.nodeName : 'N/A'
-            });
+            // 容器状态检查
             
             // 只有当容器存在且有有效的父节点时才尝试移除
             if (containerExists && hasParentNode && parentNodeIsValid) {
               try {
                 // 使用try-catch确保即使删除失败也能继续
                 viewerContainer.parentNode.removeChild(viewerContainer);
-                console.log('成功移除查看器容器');
               } catch (removeError) {
                 console.warn('移除查看器容器时出错', removeError);
                 
@@ -615,10 +607,10 @@ export function cleanup() {
                 }
               }
             } else if (containerExists) {
-              console.log('查看器容器没有有效的父节点，改为隐藏元素');
+              // 查看器容器没有有效的父节点，改为隐藏元素
               viewerContainer.style.display = 'none';
             } else {
-              console.log('查看器容器不存在，无需移除');
+              // 查看器容器不存在，无需移除
             }
           } catch (containerError) {
             console.warn('处理查看器容器时发生错误', containerError);
@@ -635,7 +627,6 @@ export function cleanup() {
                   if (sceneCount > 0) {
                     try {
                       viewer.removeSplatScene(0);
-                      console.log('成功移除点云场景');
                     } catch (sceneError) {
                       console.warn('移除场景失败，但这通常不是问题:', sceneError);
                     }
@@ -646,7 +637,6 @@ export function cleanup() {
                 if (typeof viewer.dispose === 'function') {
                   try {
                     viewer.dispose();
-                    console.log('高斯点云查看器已销毁');
                   } catch (disposeError) {
                     console.warn('销毁查看器时出现问题，但程序将继续:', disposeError);
                   }
@@ -655,7 +645,7 @@ export function cleanup() {
                 console.warn('处理查看器时出错，但程序将继续:', viewerError);
               }
             } else {
-              console.log('查看器已经是null，无需清理');
+              // 查看器已经是null，无需清理
             }
           } catch (e) {
             console.error('销毁高斯点云查看器资源时出错', e);

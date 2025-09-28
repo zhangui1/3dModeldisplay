@@ -29,92 +29,16 @@ if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
 }
 
-// 创建示例PLY点云文件
-function createSamplePLYFile() {
-    const plyPath = path.join(modelsDir, 'sample_cloud.ply');
-    
-    // 生成一个简单的PLY文件，包含颜色和坐标信息
-    const header = [
-        'ply',
-        'format ascii 1.0',
-        'element vertex 8',  // 8个顶点组成一个立方体的点云
-        'property float x',
-        'property float y',
-        'property float z',
-        'property uchar red',
-        'property uchar green',
-        'property uchar blue',
-        'end_header'
-    ];
-    
-    // 创建一个立方体的顶点，并加上RGB颜色
-    const vertices = [
-        '-0.5 -0.5 -0.5 255 0 0',  // 红色
-        '0.5 -0.5 -0.5 0 255 0',   // 绿色
-        '-0.5 0.5 -0.5 0 0 255',   // 蓝色
-        '0.5 0.5 -0.5 255 255 0',  // 黄色
-        '-0.5 -0.5 0.5 255 0 255', // 品红色
-        '0.5 -0.5 0.5 0 255 255',  // 青色
-        '-0.5 0.5 0.5 128 128 128', // 灰色
-        '0.5 0.5 0.5 255 255 255'   // 白色
-    ];
-    
-    const plyContent = [...header, ...vertices].join('\n');
-    fs.writeFileSync(plyPath, plyContent);
-    
-    return plyPath;
-}
+// 示例PLY点云文件创建函数已移除，不再创建示例模型
 
-// 检查PLY模型 - 不再强制添加示例
+// 此函数已删除 - 不再添加自动示例模型
 function checkAndAddPointCloudSample(models) {
-    // 注释掉自动生成示例 PLY 的功能，避免影响其他PLY模型的加载
-    /*
-    // 检查是否已有PLY格式模型
-    const hasPlyModel = models.some(model => model.format.toLowerCase() === 'ply');
-    
-    if (!hasPlyModel) {
-        // 创建点云样本
-        const plyPath = createSamplePLYFile();
-        
-        // 创建缩略图
-        const thumbPath = path.join(imagesDir, 'thumb_cloud.svg');
-        fs.writeFileSync(thumbPath, createSvgThumbnail('#22aadd', '点云模型'));
-        
-        // 添加到模型列表
-        const newModel = {
-            id: models.length > 0 ? Math.max(...models.map(m => m.id)) + 1 : 1,
-            name: '多彩点云模型',
-            description: '这是一个简单的点云模型示例，包含8个不同颜色的点。',
-            path: '/models/sample_cloud.ply',
-            format: 'ply',
-            thumbnail: '/images/thumb_cloud.svg',
-            order: models.length + 1
-        };
-        
-        models.push(newModel);
-        fs.writeFileSync(dataFilePath, JSON.stringify(models, null, 2));
-        console.log('已添加PLY点云示例模型');
-    }
-    */
-    
+    // 不再添加示例模型，直接返回原始数据
     return models;
 }
 
 // 初始化模型数据文件
 if (!fs.existsSync(dataFilePath)) {
-    // 创建一个简单的立方体模型作为示例
-    const boxGeometryCode = `
-{"accessors":[{"bufferView":0,"componentType":5126,"count":24,"max":[0.5,0.5,0.5],"min":[-0.5,-0.5,-0.5],"type":"VEC3"},{"bufferView":1,"componentType":5126,"count":24,"type":"VEC3"},{"bufferView":2,"componentType":5126,"count":24,"type":"VEC2"},{"bufferView":3,"componentType":5123,"count":36,"type":"SCALAR"}],"asset":{"generator":"VSCODE Debugger","version":"2.0"},"bufferViews":[{"buffer":0,"byteLength":288,"byteOffset":0},{"buffer":0,"byteLength":288,"byteOffset":288},{"buffer":0,"byteLength":192,"byteOffset":576},{"buffer":0,"byteLength":72,"byteOffset":768}],"buffers":[{"byteLength":840,"uri":"data:application/octet-stream;base64,AAAAvwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAvwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAD8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAvwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAACAPwAAgD8AAIA/AABAPwAAgD8AAIA/AABAPwAAgD8AAAA/AABAPwAAgD8AAAA/AABAPwAAAAAAAIA/AAAAAAAAgD8AAIA/AAAAAAAAQD8AAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AABAPwAAAAAAAIA/AABAPwAAAAAAAIA/AABAPwAAgD4AAIA/AABAPwAAgD4AAIA/AAAAAAAAgD8AAIA/AAAAAAAAgD8AAIA/AAABAAIAAwACAAEABAAFAAYABwAGAAUACAAJAAoACwAKAAkADAANAA4ADwAOAA0AEAARABIAEwASABEAFAAVABYAFwAWABUA"}],"materials":[{"doubleSided":true,"name":"Material","pbrMetallicRoughness":{"baseColorFactor":[0.8,0.2,0.2,1.0],"metallicFactor":0,"roughnessFactor":0.4}}],"meshes":[{"name":"Cube","primitives":[{"attributes":{"NORMAL":1,"POSITION":0,"TEXCOORD_0":2},"indices":3,"material":0}]}],"nodes":[{"mesh":0,"name":"Cube"}],"scene":0,"scenes":[{"name":"Scene","nodes":[0]}]}
-    `;
-
-    // 创建缩略图的SVG内容
-    const createSvgThumbnail = (color, text) => `
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
-  <rect width="200" height="200" fill="${color}" />
-  <text x="100" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="white">${text}</text>
-</svg>
-    `;
-
     // 确保模型和图片目录存在
     if (!fs.existsSync(modelsDir)) {
         fs.mkdirSync(modelsDir, { recursive: true });
@@ -123,61 +47,12 @@ if (!fs.existsSync(dataFilePath)) {
         fs.mkdirSync(imagesDir, { recursive: true });
     }
 
-    // 写入立方体模型文件
-    fs.writeFileSync(path.join(modelsDir, 'cube.gltf'), boxGeometryCode);
-
-    // 创建缩略图
-    fs.writeFileSync(path.join(imagesDir, 'thumb1.svg'), createSvgThumbnail('#ff0000', '3D模型1'));
-    fs.writeFileSync(path.join(imagesDir, 'thumb2.svg'), createSvgThumbnail('#00aa00', '3D模型2'));
-    fs.writeFileSync(path.join(imagesDir, 'thumb3.svg'), createSvgThumbnail('#0000ff', '3D模型3'));
-    fs.writeFileSync(path.join(imagesDir, 'thumb4.svg'), createSvgThumbnail('#aa00aa', '3D模型4'));
-
-    // 创建初始示例数据
-    const initialData = [
-        {
-            id: 1,
-            name: '红色立方体',
-            description: '这是一个简单的红色立方体模型示例。',
-            path: '/models/cube.gltf',
-            format: 'gltf',
-            thumbnail: '/images/thumb1.svg',
-            order: 1
-        },
-        {
-            id: 2,
-            name: '绿色立方体',
-            description: '这是一个简单的绿色立方体模型示例。',
-            path: '/models/cube.gltf',
-            format: 'gltf',
-            thumbnail: '/images/thumb2.svg',
-            order: 2
-        },
-        {
-            id: 3,
-            name: '蓝色立方体',
-            description: '这是一个简单的蓝色立方体模型示例。',
-            path: '/models/cube.gltf',
-            format: 'gltf',
-            thumbnail: '/images/thumb3.svg',
-            order: 3
-        },
-        {
-            id: 4,
-            name: '紫色立方体',
-            description: '这是一个简单的紫色立方体模型示例。',
-            path: '/models/cube.gltf',
-            format: 'gltf',
-            thumbnail: '/images/thumb4.svg',
-            order: 4
-        }
-    ];
+    // 创建空的初始数据，不再添加示例模型
+    const initialData = [];
     
     fs.writeFileSync(dataFilePath, JSON.stringify(initialData, null, 2));
     
-    console.log('已创建示例模型和缩略图');
-    
-    // 不再自动创建PLY点云示例模型
-    // checkAndAddPointCloudSample(initialData);
+    console.log('已创建空的模型数据文件');
 }
 
 // 配置文件存储

@@ -677,12 +677,12 @@ function correctModelOrientation(object, format) {
   if (maxDim < 10 || maxDim > 30) {
     const scaleFactor = idealSize / maxDim;
     object.scale.multiplyScalar(scaleFactor);
-    console.log(`标准格式模型尺寸调整: ${maxDim} -> ${maxDim * scaleFactor}，缩放因子: ${scaleFactor}`);
+    // 标准格式模型尺寸调整
   } else {
     // 标准模型通常偏小，即使在合理范围内也适当放大
     const scaleFactor = 1.5;
     object.scale.multiplyScalar(scaleFactor);
-    console.log(`标准格式模型适当放大: ${maxDim} -> ${maxDim * scaleFactor}，缩放因子: ${scaleFactor}`);
+    // 标准格式模型适当放大
   }
   
   // 更新变换矩阵确保应用所有更改
