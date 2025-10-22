@@ -239,9 +239,15 @@ export function loadByFormat(path, modelId, format, onProgress, options = {}) {
  */
 function initViewer() {
   try {
+    // 获取viewer容器元素
+    const viewerContainerElement = document.getElementById('viewer-container');
+    if (!viewerContainerElement) {
+      throw new Error('找不到viewer-container元素');
+    }
+    
     // 创建GaussianSplats3D查看器，与build中的配置完全相同
     viewer = new GaussianSplats3D.Viewer({
-      'rootElement': document.getElementById('viewer-container'),
+      'rootElement': viewerContainerElement,
       'cameraUp': [0, 1, 0],
       'initialCameraPosition': [0, 2, 8],
       'initialCameraLookAt': [0, 0, 0],
@@ -253,6 +259,9 @@ function initViewer() {
       'sharedMemoryForWorkers': false, // 禁用SharedArrayBuffer
       'gpuAcceleratedSort': false // 使用CPU排序避免共享内存问题
     });
+    
+    // 标记rootElement，防止库在dispose时移除它
+    viewerContainerElement._manuallyManaged = true;
     
     // 添加键盘事件监听
     document.addEventListener('keydown', handleKeyPress);
@@ -464,6 +473,9 @@ export function cleanup() {
         // 使用setTimeout允许渲染循环完全停止后再处理销毁
         setTimeout(() => {
           try {
+            // 获取rootElement引用（在dispose之前）
+            const rootElement = document.getElementById('viewer-container');
+            
             // 如果有场景，先尝试移除
             if (viewer.getSceneCount && viewer.getSceneCount() > 0) {
               try {
@@ -473,9 +485,73 @@ export function cleanup() {
               }
             }
             
+            // 销毁查看器前，先清理所有可能的UI元素
+            try {
+              // 移除所有可能的进度条和加载UI
+              const uiSelectors = [
+                '.progressBarOuterContainer',
+                '.progressBarBox',
+                '.loading-progress',
+                '.progress-container',
+                '[class*="progress"]'
+              ];
+              
+              uiSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                  try {
+                    // 检查元素是否还在DOM中
+                    if (el && el.parentNode && document.body.contains(el)) {
+                      el.parentNode.removeChild(el);
+                    }
+                  } catch (e) {
+                    // 静默失败
+                  }
+                });
+              });
+            } catch (uiCleanupError) {
+              // 静默失败
+            }
+            
+            // 临时将rootElement移到document.body下，让库能正确dispose
+            let originalParent = null;
+            let shouldRestoreParent = false;
+            
+            if (rootElement && rootElement.parentNode !== document.body) {
+              originalParent = rootElement.parentNode;
+              shouldRestoreParent = true;
+              try {
+                // 暂时移到body下
+                document.body.appendChild(rootElement);
+              } catch (moveError) {
+                // 如果移动失败，标记不需要恢复
+                shouldRestoreParent = false;
+              }
+            }
+            
             // 销毁查看器
-            viewer.dispose();
-            console.log('高斯点云查看器已销毁');
+            try {
+              viewer.dispose();
+              console.log('高斯点云查看器已销毁');
+            } catch (disposeError) {
+              // 忽略DOM相关的错误（主要是removeChild错误）
+              if (disposeError.name !== 'NotFoundError' && 
+                  disposeError.name !== 'HierarchyRequestError' &&
+                  !disposeError.message.includes('removeChild') &&
+                  !disposeError.message.includes('not a child')) {
+                console.warn('销毁查看器时出现问题:', disposeError);
+              }
+              // DOM错误静默忽略，因为我们会手动清理
+            }
+            
+            // 无论dispose是否成功，手动清理rootElement
+            if (rootElement && rootElement.parentNode) {
+              try {
+                rootElement.parentNode.removeChild(rootElement);
+              } catch (cleanupError) {
+                // 静默失败
+              }
+            }
           } catch (e) {
             console.error('销毁高斯点云查看器资源时出错', e);
           }

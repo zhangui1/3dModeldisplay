@@ -140,7 +140,7 @@ export function loadPlyModel(path, modelId, onProgress, options = {}) {
         // 加载3D高斯点云数据
         await viewer.addSplatScene(fileUrl, {
           'format': format, // 显式指定文件格式
-          'progressiveLoad': fileType === 'ply' || fileType === 'splat' || fileType === 'ksplat',
+          'progressiveLoad': false, // 禁用渐进式加载，以支持压缩PLY等特殊格式
           'showLoadingUI': false,
           'splatAlphaRemovalThreshold': 5, // 透明度阈值
           'onProgress': (progress) => {
@@ -235,9 +235,15 @@ export function loadPlyModel(path, modelId, onProgress, options = {}) {
  */
 function initViewer() {
   try {
+    // 获取viewer容器元素
+    const viewerContainerElement = document.getElementById('viewer-container');
+    if (!viewerContainerElement) {
+      throw new Error('找不到viewer-container元素');
+    }
+    
     // 创建GaussianSplats3D查看器，使用默认设置，后续会根据模型调整相机
     viewer = new GaussianSplats3D.Viewer({
-      'rootElement': document.getElementById('viewer-container'),
+      'rootElement': viewerContainerElement,
       'cameraUp': [0, 1, 0],
       'initialCameraPosition': [0, 1, 5], // 初始相机位置，会在加载完成后自动调整
       'initialCameraLookAt': [0, 0, 0],
@@ -260,6 +266,10 @@ function initViewer() {
         'enableRotate': true // 启用旋转
       }
     });
+    
+    // 标记rootElement，防止库在dispose时移除它
+    // 通过在viewerContainerElement上添加一个标记，我们可以在cleanup中手动处理
+    viewerContainerElement._manuallyManaged = true;
     
     // 添加键盘事件监听
     document.addEventListener('keydown', handleKeyPress);
@@ -859,6 +869,9 @@ export function cleanup() {
           try {
             // 首先检查viewer是否存在并且有效
             if (viewer) {
+              // 获取rootElement引用（在dispose之前）
+              const rootElement = document.getElementById('viewer-container');
+              
               // 安全地检查和移除场景
               try {
                 if (viewer.getSceneCount && typeof viewer.getSceneCount === 'function') {
@@ -872,12 +885,72 @@ export function cleanup() {
                   }
                 }
                 
+                // 销毁查看器前，先清理所有可能的UI元素
+                try {
+                  // 移除所有可能的进度条和加载UI
+                  const uiSelectors = [
+                    '.progressBarOuterContainer',
+                    '.progressBarBox',
+                    '.loading-progress',
+                    '.progress-container',
+                    '[class*="progress"]'
+                  ];
+                  
+                  uiSelectors.forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                      try {
+                        // 检查元素是否还在DOM中
+                        if (el && el.parentNode && document.body.contains(el)) {
+                          el.parentNode.removeChild(el);
+                        }
+                      } catch (e) {
+                        // 静默失败
+                      }
+                    });
+                  });
+                } catch (uiCleanupError) {
+                  // 静默失败
+                }
+                
+                // 临时将rootElement移到document.body下，让库能正确dispose
+                let originalParent = null;
+                let shouldRestoreParent = false;
+                
+                if (rootElement && rootElement.parentNode !== document.body) {
+                  originalParent = rootElement.parentNode;
+                  shouldRestoreParent = true;
+                  try {
+                    // 暂时移到body下
+                    document.body.appendChild(rootElement);
+                  } catch (moveError) {
+                    // 如果移动失败，标记不需要恢复
+                    shouldRestoreParent = false;
+                  }
+                }
+                
                 // 销毁查看器
                 if (typeof viewer.dispose === 'function') {
                   try {
                     viewer.dispose();
                   } catch (disposeError) {
-                    console.warn('销毁查看器时出现问题，但程序将继续:', disposeError);
+                    // 忽略DOM相关的错误（主要是removeChild错误）
+                    if (disposeError.name !== 'NotFoundError' && 
+                        disposeError.name !== 'HierarchyRequestError' &&
+                        !disposeError.message.includes('removeChild') &&
+                        !disposeError.message.includes('not a child')) {
+                      console.warn('销毁查看器时出现问题:', disposeError);
+                    }
+                    // DOM错误静默忽略，因为我们会手动清理
+                  }
+                }
+                
+                // 无论dispose是否成功，手动清理rootElement
+                if (rootElement && rootElement.parentNode) {
+                  try {
+                    rootElement.parentNode.removeChild(rootElement);
+                  } catch (cleanupError) {
+                    // 静默失败
                   }
                 }
               } catch (viewerError) {
