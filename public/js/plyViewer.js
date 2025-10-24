@@ -255,10 +255,6 @@ function initViewer() {
       'sharedMemoryForWorkers': false, // 禁用SharedArrayBuffer
       'gpuAcceleratedSort': false, // 使用CPU排序避免共享内存问题
       'controls': {
-        'minPolarAngle': 0, // 允许从任意角度查看
-        'maxPolarAngle': Math.PI, // 允许从任意角度查看
-        'minAzimuthAngle': -Infinity, // 允许无限制水平旋转
-        'maxAzimuthAngle': Infinity, // 允许无限制水平旋转
         'enableDamping': true, // 启用阻尼效果
         'dampingFactor': 0.07, // 阻尼系数
         'enablePan': true, // 启用平移
@@ -266,6 +262,18 @@ function initViewer() {
         'enableRotate': true // 启用旋转
       }
     });
+    
+    // 添加相机控制限制：适用于正面视图模型
+    if (viewer.controls) {
+      // 水平旋转：左右各90度，可看到左右侧面但看不到背面
+      const initialAzimuth = viewer.controls.getAzimuthalAngle ? viewer.controls.getAzimuthalAngle() : 0;
+      viewer.controls.minAzimuthAngle = initialAzimuth - Math.PI / 2; // 左侧限制90度
+      viewer.controls.maxAzimuthAngle = initialAzimuth + Math.PI / 2; // 右侧限制90度
+      
+      // 垂直旋转：从顶部到水平线，可看到顶部但看不到底部
+      viewer.controls.minPolarAngle = 0; // 顶部（0度，+Y轴方向）
+      viewer.controls.maxPolarAngle = Math.PI / 2; // 水平线（90度）
+    }
     
     // 标记rootElement，防止库在dispose时移除它
     // 通过在viewerContainerElement上添加一个标记，我们可以在cleanup中手动处理

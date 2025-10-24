@@ -12,18 +12,15 @@ let models = [];
 let currentModelIndex = 0;
 let loadedModels = {};
 let isLoading = false;
-let autoRotate = true; // 默认开启自动旋转
 let wireframeMode = false;
 
 // 控制按钮状态
 const BUTTON_STATES = {
-  autoRotate: true,
   fullscreen: false
 };
 
 const CONFIG = {
   modelView: { 
-    autoRotateSpeed: 9.5, // 进一步提高标准模型的旋转速度
     minDistance: 0.1, 
     maxDistance: 5000 
   },
@@ -38,12 +35,6 @@ document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
 function init() {
-  // 添加加载动画
-  showLoading();
-  
-  // 初始化自动旋转状态
-  autoRotate = true; // 默认开启自动旋转
-  
   initScene();
   loadModelsList().then(() => {
     if (models.length) {
@@ -51,8 +42,6 @@ function init() {
       loadModel(models[currentModelIndex]);
       updateModelInfo(models[currentModelIndex]);
     } else {
-      // 隐藏加载动画
-      hideLoading();
       // 显示无模型提示
       showNoModelsMessage();
     }
@@ -106,7 +95,6 @@ function initControlButtons() {
   // 键盘快捷键
   window.addEventListener('keydown', (e) => {
     if (e.key === 'w') toggleWireframeMode();
-    if (e.key === 'r') toggleAutoRotate();
     if (e.key === 'c') resetCameraForCurrentModel();
     if (e.key === 'f') toggleFullscreen();
   });
@@ -114,33 +102,8 @@ function initControlButtons() {
 
 // 重置控制按钮，确保事件监听器正确绑定
 function resetControlButtons() {
-  const autoRotateBtn = document.getElementById('auto-rotate');
   const resetCameraBtn = document.getElementById('reset-camera');
   const fullscreenBtn = document.getElementById('fullscreen');
-  
-  // 移除可能存在的旧事件监听器 - 通过克隆元素实现
-  if (autoRotateBtn) {
-    const newAutoRotateBtn = autoRotateBtn.cloneNode(true);
-    if (autoRotateBtn.parentNode) {
-      autoRotateBtn.parentNode.replaceChild(newAutoRotateBtn, autoRotateBtn);
-      newAutoRotateBtn.addEventListener('click', () => {
-        // 变化按钮视觉状态
-        if (!autoRotate) {
-          newAutoRotateBtn.classList.add('active');
-          newAutoRotateBtn.style.backgroundColor = '#1e88e5';
-        } else {
-          newAutoRotateBtn.classList.remove('active');
-          newAutoRotateBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-        }
-        
-        // 切换自动旋转状态
-        toggleAutoRotate();
-      });
-    }
-    
-    // 初始状态设置
-    updateAutoRotateButtonState();
-  }
   
   if (resetCameraBtn) {
     const newResetCameraBtn = resetCameraBtn.cloneNode(true);
@@ -356,17 +319,19 @@ function initScene() {
     controls.dampingFactor = 0.07;
     controls.minDistance = CONFIG.modelView.minDistance;
     controls.maxDistance = CONFIG.modelView.maxDistance;
-    controls.autoRotate = autoRotate; // 确保自动旋转开启
-    controls.autoRotateSpeed = CONFIG.modelView.autoRotateSpeed; // 使用负值实现从左到右逆时针旋转
     
-    // 提供全角度的360度旋转控制，允许用户从任何角度观察模型
-    controls.minPolarAngle = 0; // 允许完全的上方观察
-    controls.maxPolarAngle = Math.PI; // 允许完全的下方观察
+    // 添加相机控制限制：适用于正面视图模型
+    // 水平旋转：左右各90度，可看到左右侧面但看不到背面
+    const initialAzimuth = controls.getAzimuthalAngle ? controls.getAzimuthalAngle() : 0;
+    controls.minAzimuthAngle = initialAzimuth - Math.PI / 2; // 左侧限制90度
+    controls.maxAzimuthAngle = initialAzimuth + Math.PI / 2; // 右侧限制90度
+    // 垂直旋转：从顶部到水平线，可看到顶部但看不到底部
+    controls.minPolarAngle = 0; // 顶部（0度，+Y轴方向）
+    controls.maxPolarAngle = Math.PI / 2; // 水平线（90度）
+    
     controls.enablePan = true; // 启用平移
     controls.enableZoom = true; // 启用缩放
     controls.enableRotate = true; // 启用旋转
-    controls.minAzimuthAngle = -Infinity; // 无水平旋转限制
-    controls.maxAzimuthAngle = Infinity; // 无水平旋转限制
     
     // 设置初始相机位置为正面观察 - 正对模型
     camera.position.set(0, 1, 5); // 使用Z轴作为正视方向，Y轴向上，略微从上方观察
@@ -375,8 +340,7 @@ function initScene() {
     // 创建一个空的控制器对象，避免错误
     controls = {
       update: function() {},
-      target: new THREE.Vector3(),
-      autoRotate: false
+      target: new THREE.Vector3()
     };
   }
 
@@ -386,9 +350,7 @@ function initScene() {
 function animate() {
   requestAnimationFrame(animate);
   
-  // 确保每帧都检查自动旋转状态
   if (controls) {
-    controls.autoRotate = autoRotate;
     controls.update();
   }
   
@@ -536,7 +498,6 @@ function loadModel(modelData) {
   if (isLoading) return;
   
   isLoading = true;
-  showLoading('正在加载模型...');
   showLoadingIndicator('正在加载模型...');
   clearSceneModels();
   
@@ -602,30 +563,26 @@ function loadModel(modelData) {
     delete loadedModels[modelData.id];
   };
   
-  // 进度回调函数
+  // 进度回调函数（添加标志防止100%后再显示0%）
+  let progressCompleted = false;
   const onProgress = (xhr) => {
+    // 如果已经完成，忽略后续的进度回调
+    if (progressCompleted) return;
+    
     if (xhr.lengthComputable) {
       const percentComplete = (xhr.loaded / xhr.total) * 100;
       const roundedPercent = Math.round(percentComplete);
       
+      // 只显示蓝色圆圈加载指示器，不显示黑色背景的加载提示
+      showLoadingIndicator(`正在加载: ${roundedPercent}%`);
+      
       if (roundedPercent >= 100) {
-        // 当进度为100%时，使用完成文本，但让回调来清理
-        showLoading('处理中，请稍候...');
-        showLoadingIndicator('处理中，请稍候...');
-        
-        // 为了处理某些情况下回调未被正确触发的情况，设置一个延时清理
+        // 标记进度已完成，防止后续回调再显示0%
+        progressCompleted = true;
+        // 进度达到100%时，稍作延迟后自动清理加载提示
         setTimeout(() => {
-          // 如果还在显示100%或处理中，则清理它
-          const indicator = document.getElementById('loading-indicator');
-          if (indicator && (indicator.textContent.includes('100%') || 
-                           indicator.textContent.includes('处理中'))) {
-            removeLoading();
-          }
-        }, 3000); // 给予足够时间让回调发生，如果3秒后还在100%就强制清除
-      } else {
-        // 正常更新加载进度
-        showLoading(`加载中: ${roundedPercent}%`);
-        showLoadingIndicator(`加载中: ${roundedPercent}%`);
+          removeLoading();
+        }, 500); // 延迟500ms，确保模型已完全渲染
       }
     }
   };
@@ -727,7 +684,6 @@ async function loadPlyModel(path, modelId, onProgress) {
       // 确保加载失败后也清除加载提示
       removeLoading();
     },
-    showLoading,
     hideLoading,
     animate
   });
@@ -746,7 +702,6 @@ async function loadSplatModel(path, modelId, onProgress) {
       // 确保加载失败后也清除加载提示
       removeLoading();
     },
-    showLoading,
     hideLoading,
     animate
   });
@@ -971,49 +926,6 @@ function toggleWireframeMode() {
   });
 }
 
-// 切换自动旋转
-function toggleAutoRotate() {
-  autoRotate = !autoRotate;
-  
-  // 处理标准格式模型
-  if (controls) {
-    controls.autoRotate = autoRotate;
-    
-    if (autoRotate) {
-      // 确保旋转方向和速度正确
-      controls.autoRotateSpeed = CONFIG.modelView.autoRotateSpeed;
-    }
-  }
-  
-  // 检查当前模型类型
-  const currentModel = loadedModels[models[currentModelIndex]?.id];
-  if (currentModel && currentModel.type === 'gaussian-splats' && currentModel.viewer) {
-    // 如果是高斯点云模型，还需要使用其专用的自动旋转功能
-    const plyViewer = PlyViewer.getViewer();
-    if (plyViewer && typeof plyViewer.toggleAutoRotate === 'function') {
-      plyViewer.toggleAutoRotate(autoRotate);
-    }
-  }
-  
-  // 更新按钮状态
-  updateAutoRotateButtonState();
-}
-
-// 更新自动旋转按钮状态
-function updateAutoRotateButtonState() {
-  const autoRotateBtn = document.getElementById('auto-rotate');
-  if (autoRotateBtn) {
-    if (autoRotate) {
-      autoRotateBtn.classList.add('active');
-      autoRotateBtn.style.backgroundColor = '#1e88e5'; // 明确使用蓝色背景
-      BUTTON_STATES.autoRotate = true;
-    } else {
-      autoRotateBtn.classList.remove('active');
-      autoRotateBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-      BUTTON_STATES.autoRotate = false;
-    }
-  }
-}
 
 // 显示错误信息
 function showErrorOverlay(message) {

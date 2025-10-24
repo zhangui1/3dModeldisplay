@@ -1,11 +1,6 @@
-// plyControlsExtension.js - 为PLY高斯点云模型添加控制功能（全屏、重置视角、自动旋转）
+// plyControlsExtension.js - 为PLY高斯点云模型添加控制功能（全屏、重置视角）
 
 import * as THREE from 'three';
-
-// 存储控制状态
-let autoRotateEnabled = true; // 默认开启自动旋转
-let autoRotateInterval = null;
-const AUTO_ROTATE_SPEED = 0.005; // 稍微降低PLY模型的旋转速度
 
 /**
  * 初始化PLY模型的控制按钮功能
@@ -15,20 +10,8 @@ export function initPlyControls(viewer) {
   if (!viewer) return;
   
   // 绑定控制按钮事件
-  const autoRotateBtn = document.getElementById('auto-rotate');
   const resetCameraBtn = document.getElementById('reset-camera');
   const fullscreenBtn = document.getElementById('fullscreen');
-  
-  // 移除可能存在的旧事件监听器
-  if (autoRotateBtn) {
-    const newAutoRotateBtn = autoRotateBtn.cloneNode(true);
-    autoRotateBtn.parentNode.replaceChild(newAutoRotateBtn, autoRotateBtn);
-    newAutoRotateBtn.addEventListener('click', () => toggleAutoRotate(viewer));
-  }
-  
-  // 默认启动自动旋转
-  toggleAutoRotate(viewer);
-  updateAutoRotateButtonState();
   
   if (resetCameraBtn) {
     const newResetCameraBtn = resetCameraBtn.cloneNode(true);
@@ -57,46 +40,11 @@ export function initPlyControls(viewer) {
   
   // 添加键盘快捷键
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'r') toggleAutoRotate(viewer);
     if (e.key === 'c') resetCameraView(viewer);
     if (e.key === 'f') toggleFullscreen(viewer);
   });
   
   // PLY控制按钮功能初始化完成
-}
-
-/**
- * 切换自动旋转
- * @param {Object} viewer - GaussianSplats3D查看器实例
- */
-export function toggleAutoRotate(viewer) {
-  if (!viewer || !viewer.camera) return;
-  
-  autoRotateEnabled = !autoRotateEnabled;
-  updateAutoRotateButtonState();
-  
-  if (autoRotateEnabled) {
-    // 启动自动旋转
-    if (autoRotateInterval) clearInterval(autoRotateInterval);
-    
-    autoRotateInterval = setInterval(() => {
-      // 围绕Y轴旋转场景，使用负值实现逆时针旋转（从左到右）
-      if (viewer.threeScene && viewer.getSplatMesh() && viewer.getSplatMesh().scenes && viewer.getSplatMesh().scenes[0]) {
-        const scene = viewer.getSplatMesh().scenes[0];
-        scene.rotation.y += AUTO_ROTATE_SPEED;
-        viewer.forceRenderNextFrame(); // 强制渲染下一帧
-      }
-    }, 16); // 约60fps
-    
-    // 自动旋转已开启
-  } else {
-    // 停止自动旋转
-    if (autoRotateInterval) {
-      clearInterval(autoRotateInterval);
-      autoRotateInterval = null;
-    }
-    // 自动旋转已关闭
-  }
 }
 
 /**
@@ -287,37 +235,14 @@ export function toggleFullscreen(viewer) {
 }
 
 /**
- * 更新自动旋转按钮状态
- */
-function updateAutoRotateButtonState() {
-  const autoRotateBtn = document.getElementById('auto-rotate');
-  if (!autoRotateBtn) return;
-  
-  if (autoRotateEnabled) {
-    autoRotateBtn.classList.add('active');
-    autoRotateBtn.style.backgroundColor = '#1e88e5'; // 明确使用蓝色背景
-  } else {
-    autoRotateBtn.classList.remove('active');
-    autoRotateBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-  }
-}
-
-/**
  * 清理控制功能
  */
 export function cleanup() {
-  // 停止自动旋转
-  if (autoRotateInterval) {
-    clearInterval(autoRotateInterval);
-    autoRotateInterval = null;
-  }
-  autoRotateEnabled = false;
-  updateAutoRotateButtonState();
+  // 清理功能（预留）
 }
 
 export default {
   initPlyControls,
-  toggleAutoRotate,
   resetCameraView,
   toggleFullscreen,
   cleanup
