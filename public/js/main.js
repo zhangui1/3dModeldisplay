@@ -321,10 +321,10 @@ function initScene() {
     controls.maxDistance = CONFIG.modelView.maxDistance;
     
     // 添加相机控制限制：适用于正面视图模型
-    // 水平旋转：左右各90度，可看到左右侧面但看不到背面
+    // 水平旋转：左右各60度
     const initialAzimuth = controls.getAzimuthalAngle ? controls.getAzimuthalAngle() : 0;
-    controls.minAzimuthAngle = initialAzimuth - Math.PI / 2; // 左侧限制90度
-    controls.maxAzimuthAngle = initialAzimuth + Math.PI / 2; // 右侧限制90度
+    controls.minAzimuthAngle = initialAzimuth - Math.PI / 3; // 左侧限制60度
+    controls.maxAzimuthAngle = initialAzimuth + Math.PI / 3; // 右侧限制60度
     // 垂直旋转：从顶部到水平线，可看到顶部但看不到底部
     controls.minPolarAngle = 0; // 顶部（0度，+Y轴方向）
     controls.maxPolarAngle = Math.PI / 2; // 水平线（90度）

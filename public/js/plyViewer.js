@@ -265,10 +265,10 @@ function initViewer() {
     
     // 添加相机控制限制：适用于正面视图模型
     if (viewer.controls) {
-      // 水平旋转：左右各90度，可看到左右侧面但看不到背面
+      // 水平旋转：左右各60度
       const initialAzimuth = viewer.controls.getAzimuthalAngle ? viewer.controls.getAzimuthalAngle() : 0;
-      viewer.controls.minAzimuthAngle = initialAzimuth - Math.PI / 2; // 左侧限制90度
-      viewer.controls.maxAzimuthAngle = initialAzimuth + Math.PI / 2; // 右侧限制90度
+      viewer.controls.minAzimuthAngle = initialAzimuth - Math.PI / 3; // 左侧限制60度
+      viewer.controls.maxAzimuthAngle = initialAzimuth + Math.PI / 3; // 右侧限制60度
       
       // 垂直旋转：从顶部到水平线，可看到顶部但看不到底部
       viewer.controls.minPolarAngle = 0; // 顶部（0度，+Y轴方向）
