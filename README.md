@@ -85,37 +85,7 @@
    - 模型展示页面: `http://localhost:3000/index.html`
    - 管理页面: `http://localhost:3000/admin/index.html`
 
-### 生产环境部署
-1. 服务器准备
-   ```
-   npm install
-   npm run build  # 如果有构建步骤
-   ```
-
-2. 使用PM2运行
-   ```
-   npm install -g pm2
-   pm2 start server.js --name "3d-model-display"
-   pm2 save
-   ```
-
-3. Nginx配置（可选）
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-       
-       location / {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_cache_bypass $http_upgrade;
-       }
-   }
-   ```
-
+   
 ## 贡献指南
 欢迎贡献代码、报告问题或提出新功能建议。请通过以下步骤参与贡献：
 
@@ -124,19 +94,6 @@
 3. 提交更改 (`git commit -m 'Add amazing feature'`)
 4. 推送到分支 (`git push origin feature/amazing-feature`)
 5. 创建Pull Request
-
-##### 待优化问题
-## 模型
-1. 不同模型居中展示问题（已优化 待测试更多模型数据）
-2. 尺寸不同模型缩放展示问题（已优化 待测试更多模型数据）
-3. 模型倒置问题（暂时依赖手动纠正后再展示）
-4. 控制台报错（代码逻辑错误导致 仍存在问题）
-5. .......
-## 页面
-1. 页面布局、内容、操作、字体等优化
-2. 页面其他功能添加（根据需求适时开发）
-3. 页面图片、模型缩略图优化
-4. ......
 
 ##### 未来展望
 
