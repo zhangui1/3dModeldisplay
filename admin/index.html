@@ -25,6 +25,9 @@
                         <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#uploadModal">上传模型</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#uploadBackgroundModal">上传背景图</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="../public/index.html" target="_blank">查看展示页面</a>
                     </li>
                 </ul>
@@ -62,6 +65,9 @@
                 <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="bi bi-plus-lg"></i> 添加模型
                 </button>
+                <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#uploadBackgroundModal">
+                    <i class="bi bi-plus-lg"></i> 添加背景图
+                </button>
                 <button class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#batchDeleteModal">
                     <i class="bi bi-trash"></i> 批量删除
                 </button>
@@ -69,25 +75,62 @@
         </div>
 
         <!-- 模型列表 -->
-        <div class="card">
-            <div class="card-header">
-                <div class="row">
-                    <div class="col-1">序号</div>
-                    <div class="col-2">预览图</div>
-                    <div class="col-2">名称</div>
-                    <div class="col-3">描述</div>
-                    <div class="col-1">格式</div>
-                    <div class="col-1">顺序</div>
-                    <div class="col-2 text-center">操作</div>
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">模型列表</h5>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="bi bi-plus-lg"></i> 添加模型
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="card-header">
+                    <div class="row text-center">
+                        <div class="col-1">序号</div>
+                        <div class="col-2">预览图</div>
+                        <div class="col-2">名称</div>
+                        <div class="col-3">描述</div>
+                        <div class="col-1">格式</div>
+                        <div class="col-1">顺序</div>
+                        <div class="col-2">操作</div>
+                    </div>
+                </div>
+                <div id="modelList">
+                    <!-- 模型列表将通过JavaScript动态加载 -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">正在加载...</span>
+                        </div>
+                        <p class="mt-2">正在加载模型数据...</p>
+                    </div>
                 </div>
             </div>
-            <div class="card-body" id="modelList">
-                <!-- 模型列表将通过JavaScript动态加载 -->
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">正在加载...</span>
+        </div>
+
+        <!-- 背景图列表 -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">背景图列表</h5>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#uploadBackgroundModal">
+                    <i class="bi bi-plus-lg"></i> 添加背景图
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="card-header">
+                    <div class="row text-center">
+                        <div class="col-1">序号</div>
+                        <div class="col-2">预览图</div>
+                        <div class="col-7">选项</div>
+                        <div class="col-2">操作</div>
                     </div>
-                    <p class="mt-2">正在加载模型数据...</p>
+                </div>
+                <div id="backgroundList">
+                    <!-- 背景图列表将通过JavaScript动态加载 -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">正在加载...</span>
+                        </div>
+                        <p class="mt-2">正在加载背景图数据...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -253,6 +296,52 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-danger" id="confirmBatchDeleteBtn">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传背景图模态框 -->
+    <div class="modal fade" id="uploadBackgroundModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传新背景图</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadBackgroundForm">
+                        <div class="mb-3">
+                            <label for="backgroundFile" class="form-label">背景图文件</label>
+                            <input type="file" class="form-control" id="backgroundFile" accept="image/*" required>
+                            <div class="form-text">支持的格式: JPG, PNG, GIF, WEBP</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="uploadBackgroundBtn">上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认删除背景图模态框 -->
+    <div class="modal fade" id="deleteBackgroundModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除此背景图吗？此操作不可恢复。</p>
+                    <p id="deleteBackgroundName" class="fw-bold"></p>
+                    <input type="hidden" id="deleteBackgroundId">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBackgroundBtn">删除</button>
                 </div>
             </div>
         </div>

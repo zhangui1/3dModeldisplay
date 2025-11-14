@@ -10,6 +10,7 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000;
 const dataFilePath = path.join(__dirname, 'data', 'models.json');
+const backgroundsFilePath = path.join(__dirname, 'data', 'backgrounds.json');
 
 // 确保数据目录存在
 const dataDir = path.join(__dirname, 'data');
@@ -55,12 +56,27 @@ if (!fs.existsSync(dataFilePath)) {
     console.log('已创建空的模型数据文件');
 }
 
+// 初始化背景图数据文件
+if (!fs.existsSync(backgroundsFilePath)) {
+    // 确保图片目录存在（背景图也存储在images目录）
+    if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    // 创建空的初始数据
+    const initialData = [];
+    
+    fs.writeFileSync(backgroundsFilePath, JSON.stringify(initialData, null, 2));
+    
+    console.log('已创建空的背景图数据文件');
+}
+
 // 配置文件存储
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
         if (file.fieldname === 'modelFile') {
             cb(null, modelsDir);
-        } else if (file.fieldname === 'thumbnailFile') {
+        } else if (file.fieldname === 'thumbnailFile' || file.fieldname === 'backgroundFile') {
             cb(null, imagesDir);
         }
     },
@@ -135,7 +151,7 @@ app.post('/api/models', upload.fields([
     { name: 'thumbnailFile', maxCount: 1 }
 ]), (req, res) => {
     try {
-        const { name, description, order } = req.body;
+        const { name, description, order, backgroundId } = req.body;
         
         if (!name || !req.files.modelFile || !req.files.thumbnailFile) {
             return res.status(400).json({ message: '缺少必要的字段' });
@@ -159,7 +175,8 @@ app.post('/api/models', upload.fields([
             path: '/models/' + modelFile.filename,
             format,
             thumbnail: '/images/' + thumbnailFile.filename,
-            order: parseInt(order) || models.length + 1
+            order: parseInt(order) || models.length + 1,
+            backgroundId: backgroundId ? parseInt(backgroundId) : null
         };
         
         // 添加到列表
@@ -184,7 +201,7 @@ app.put('/api/models/:id', upload.fields([
 ]), (req, res) => {
     try {
         const modelId = parseInt(req.params.id);
-        const { name, description, order } = req.body;
+        const { name, description, order, backgroundId } = req.body;
         
         // 读取现有数据
         const data = fs.readFileSync(dataFilePath, 'utf8');
@@ -202,7 +219,8 @@ app.put('/api/models/:id', upload.fields([
             ...models[index],
             name: name || models[index].name,
             description: description || models[index].description,
-            order: parseInt(order) || models[index].order
+            order: parseInt(order) || models[index].order,
+            backgroundId: backgroundId ? parseInt(backgroundId) : (backgroundId === '' ? null : models[index].backgroundId)
         };
         
         // 如果上传了新缩略图
@@ -392,6 +410,155 @@ app.post('/api/models/batch-delete', (req, res) => {
     } catch (error) {
         console.error('Error batch deleting models:', error);
         res.status(500).json({ message: '批量删除模型失败' });
+    }
+});
+
+// ========== 背景图API路由 ==========
+
+// 获取所有背景图
+app.get('/api/backgrounds', (req, res) => {
+    try {
+        const data = fs.readFileSync(backgroundsFilePath, 'utf8');
+        const backgrounds = JSON.parse(data);
+        res.json(backgrounds);
+    } catch (error) {
+        console.error('Error reading backgrounds data:', error);
+        res.status(500).json({ message: '获取背景图数据失败' });
+    }
+});
+
+// 添加新背景图
+app.post('/api/backgrounds', upload.fields([
+    { name: 'backgroundFile', maxCount: 1 }
+]), (req, res) => {
+    try {
+        const { name, description, order } = req.body;
+        
+        if (!req.files.backgroundFile) {
+            return res.status(400).json({ message: '缺少必要的字段' });
+        }
+        
+        const backgroundFile = req.files.backgroundFile[0];
+        
+        // 如果没有提供名称，使用文件名（去掉扩展名）
+        const backgroundName = name || backgroundFile.originalname.replace(/\.[^/.]+$/, "");
+        
+        // 读取现有数据
+        const data = fs.readFileSync(backgroundsFilePath, 'utf8');
+        const backgrounds = JSON.parse(data);
+        
+        // 创建新背景图
+        const newBackground = {
+            id: backgrounds.length > 0 ? Math.max(...backgrounds.map(b => b.id)) + 1 : 1,
+            name: backgroundName,
+            description: description || '',
+            path: '/images/' + backgroundFile.filename,
+            order: parseInt(order) || backgrounds.length + 1
+        };
+        
+        // 添加到列表
+        backgrounds.push(newBackground);
+        
+        // 按顺序排序
+        backgrounds.sort((a, b) => a.order - b.order);
+        
+        // 保存数据
+        fs.writeFileSync(backgroundsFilePath, JSON.stringify(backgrounds, null, 2));
+        
+        res.status(201).json(newBackground);
+    } catch (error) {
+        console.error('Error adding background:', error);
+        res.status(500).json({ message: '添加背景图失败' });
+    }
+});
+
+// 更新背景图
+app.put('/api/backgrounds/:id', upload.fields([
+    { name: 'backgroundFile', maxCount: 1 }
+]), (req, res) => {
+    try {
+        const backgroundId = parseInt(req.params.id);
+        const { name, description, order } = req.body;
+        
+        // 读取现有数据
+        const data = fs.readFileSync(backgroundsFilePath, 'utf8');
+        const backgrounds = JSON.parse(data);
+        
+        // 查找背景图索引
+        const index = backgrounds.findIndex(b => b.id === backgroundId);
+        
+        if (index === -1) {
+            return res.status(404).json({ message: '未找到背景图' });
+        }
+        
+        // 准备更新对象
+        const updatedBackground = {
+            ...backgrounds[index],
+            name: name || backgrounds[index].name,
+            description: description || backgrounds[index].description,
+            order: parseInt(order) || backgrounds[index].order
+        };
+        
+        // 如果上传了新背景图文件
+        if (req.files && req.files.backgroundFile) {
+            // 删除旧背景图文件
+            const oldBackgroundPath = path.join(__dirname, 'public', backgrounds[index].path);
+            if (fs.existsSync(oldBackgroundPath)) {
+                fs.unlinkSync(oldBackgroundPath);
+            }
+            
+            const backgroundFile = req.files.backgroundFile[0];
+            updatedBackground.path = '/images/' + backgroundFile.filename;
+        }
+        
+        // 更新背景图
+        backgrounds[index] = updatedBackground;
+        
+        // 按顺序排序
+        backgrounds.sort((a, b) => a.order - b.order);
+        
+        // 保存数据
+        fs.writeFileSync(backgroundsFilePath, JSON.stringify(backgrounds, null, 2));
+        
+        res.json(updatedBackground);
+    } catch (error) {
+        console.error('Error updating background:', error);
+        res.status(500).json({ message: '更新背景图失败' });
+    }
+});
+
+// 删除背景图
+app.delete('/api/backgrounds/:id', (req, res) => {
+    try {
+        const backgroundId = parseInt(req.params.id);
+        
+        // 读取现有数据
+        const data = fs.readFileSync(backgroundsFilePath, 'utf8');
+        const backgrounds = JSON.parse(data);
+        
+        // 查找背景图索引
+        const index = backgrounds.findIndex(b => b.id === backgroundId);
+        
+        if (index === -1) {
+            return res.status(404).json({ message: '未找到背景图' });
+        }
+        
+        // 删除背景图文件
+        const backgroundPath = path.join(__dirname, 'public', backgrounds[index].path);
+        if (fs.existsSync(backgroundPath)) {
+            fs.unlinkSync(backgroundPath);
+        }
+        
+        // 从数组中移除
+        backgrounds.splice(index, 1);
+        
+        // 保存数据
+        fs.writeFileSync(backgroundsFilePath, JSON.stringify(backgrounds, null, 2));
+        
+        res.json({ message: '背景图已删除' });
+    } catch (error) {
+        console.error('Error deleting background:', error);
+        res.status(500).json({ message: '删除背景图失败' });
     }
 });
 

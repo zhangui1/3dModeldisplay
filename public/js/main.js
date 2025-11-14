@@ -9,6 +9,7 @@ import * as StandardViewer from './standardViewer.js';
 // 场景、相机、渲染器和控制器
 let scene, camera, renderer, controls;
 let models = [];
+let backgrounds = [];
 let currentModelIndex = 0;
 let loadedModels = {};
 let isLoading = false;
@@ -36,7 +37,7 @@ document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
 function init() {
   initScene();
-  loadModelsList().then(() => {
+  Promise.all([loadModelsList(), loadBackgroundsList()]).then(() => {
     if (models.length) {
       createThumbnails();
       loadModel(models[currentModelIndex]);
@@ -260,6 +261,7 @@ function handleFullscreenChange() {
 
 function initScene() {
   scene = new THREE.Scene();
+  // 默认背景色，会在加载模型时根据模型关联的背景图更新
   scene.background = new THREE.Color(0x111111);
   
   // 检测是否为移动设备，以便进行性能优化
@@ -371,6 +373,18 @@ async function loadModelsList() {
   } catch (e) {
     // 获取模型列表失败，使用空数组
     models = [];
+  }
+}
+
+// 加载背景图列表
+async function loadBackgroundsList() {
+  try {
+    const res = await fetch('/api/backgrounds', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    backgrounds = await res.json();
+  } catch (e) {
+    // 获取背景图列表失败，使用空数组
+    backgrounds = [];
   }
 }
 
@@ -492,6 +506,120 @@ function clearSceneModels() {
   }
 }
 
+// 设置场景背景
+function setSceneBackground(backgroundId) {
+  // 确保backgroundId是数字类型
+  const bgId = backgroundId ? parseInt(backgroundId) : null;
+  
+  // 获取模型容器和viewer容器
+  const modelContainer = document.querySelector('.model-container');
+  const viewerContainer = document.getElementById('viewer-container');
+  
+  if (!bgId) {
+    // 如果没有背景图，使用默认黑色
+    scene.background = new THREE.Color(0x111111);
+    // 同时设置容器背景
+    if (modelContainer) {
+      modelContainer.style.background = '#111111';
+      modelContainer.style.backgroundImage = 'none';
+    }
+    if (viewerContainer) {
+      viewerContainer.style.background = '#111111';
+      viewerContainer.style.backgroundImage = 'none';
+    }
+    console.log('模型未关联背景图，使用默认黑色背景');
+    return;
+  }
+  
+  // 查找对应的背景图
+  const background = backgrounds.find(b => b.id === bgId || b.id === parseInt(bgId));
+  
+  if (!background) {
+    console.warn('未找到背景图，ID:', bgId, '可用背景图:', backgrounds.map(b => b.id));
+    scene.background = new THREE.Color(0x111111);
+    if (modelContainer) {
+      modelContainer.style.background = '#111111';
+      modelContainer.style.backgroundImage = 'none';
+    }
+    if (viewerContainer) {
+      viewerContainer.style.background = '#111111';
+      viewerContainer.style.backgroundImage = 'none';
+    }
+    return;
+  }
+  
+  if (!background.path) {
+    console.warn('背景图路径为空:', background);
+    scene.background = new THREE.Color(0x111111);
+    if (modelContainer) {
+      modelContainer.style.background = '#111111';
+      modelContainer.style.backgroundImage = 'none';
+    }
+    if (viewerContainer) {
+      viewerContainer.style.background = '#111111';
+      viewerContainer.style.backgroundImage = 'none';
+    }
+    return;
+  }
+  
+  console.log('正在加载背景图:', background.path, '背景图ID:', bgId);
+  
+  // 使用THREE.js的TextureLoader加载背景图
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    background.path,
+    (texture) => {
+      // 背景图加载成功，设置为场景背景
+      console.log('背景图加载成功:', background.path);
+      // 对于普通图片，直接设置为背景即可
+      // THREE.js会自动处理纹理映射
+      scene.background = texture;
+      
+      // 同时设置容器背景（用于PLY viewer等独立渲染器）
+      if (modelContainer) {
+        modelContainer.style.backgroundImage = `url(${background.path})`;
+        modelContainer.style.backgroundSize = 'cover';
+        modelContainer.style.backgroundPosition = 'center';
+        modelContainer.style.backgroundRepeat = 'no-repeat';
+      }
+      if (viewerContainer) {
+        viewerContainer.style.backgroundImage = `url(${background.path})`;
+        viewerContainer.style.backgroundSize = 'cover';
+        viewerContainer.style.backgroundPosition = 'center';
+        viewerContainer.style.backgroundRepeat = 'no-repeat';
+      }
+      
+      // 强制重新渲染
+      if (renderer && camera) {
+        renderer.render(scene, camera);
+      }
+    },
+    (progress) => {
+      // 加载进度
+      if (progress && progress.lengthComputable) {
+        const percentComplete = (progress.loaded / progress.total) * 100;
+        console.log('背景图加载进度:', percentComplete.toFixed(2) + '%');
+      }
+    },
+    (error) => {
+      // 背景图加载失败，使用默认黑色
+      console.error('背景图加载失败:', error, '路径:', background.path);
+      scene.background = new THREE.Color(0x111111);
+      if (modelContainer) {
+        modelContainer.style.background = '#111111';
+        modelContainer.style.backgroundImage = 'none';
+      }
+      if (viewerContainer) {
+        viewerContainer.style.background = '#111111';
+        viewerContainer.style.backgroundImage = 'none';
+      }
+      if (renderer && camera) {
+        renderer.render(scene, camera);
+      }
+    }
+  );
+}
+
 // 加载模型 - 主入口
 function loadModel(modelData) {
   if (!modelData) return;
@@ -500,6 +628,12 @@ function loadModel(modelData) {
   isLoading = true;
   showLoadingIndicator('正在加载模型...');
   clearSceneModels();
+  
+  // 根据模型关联的背景图设置场景背景
+  console.log('加载模型，模型数据:', modelData);
+  console.log('模型关联的背景图ID:', modelData.backgroundId);
+  console.log('当前背景图列表:', backgrounds);
+  setSceneBackground(modelData.backgroundId);
   
   const format = (modelData.format || '').toLowerCase();
   const path = modelData.path.startsWith('/') ? modelData.path : ('/' + modelData.path);
@@ -885,8 +1019,9 @@ function createThumbnails() {
     
     thumbnailElement.addEventListener('click', () => {
       currentModelIndex = index;
-      loadModel(models[currentModelIndex]);
-      updateModelInfo(models[currentModelIndex]);
+      const model = models[currentModelIndex];
+      loadModel(model);
+      updateModelInfo(model);
     });
     
     container.appendChild(thumbnailElement);
@@ -898,8 +1033,9 @@ function showPreviousModel() {
   if (!models.length) return;
   
   currentModelIndex = (currentModelIndex - 1 + models.length) % models.length;
-  loadModel(models[currentModelIndex]);
-  updateModelInfo(models[currentModelIndex]);
+  const model = models[currentModelIndex];
+  loadModel(model);
+  updateModelInfo(model);
 }
 
 // 切换到下一个模型
@@ -907,8 +1043,9 @@ function showNextModel() {
   if (!models.length) return;
   
   currentModelIndex = (currentModelIndex + 1) % models.length;
-  loadModel(models[currentModelIndex]);
-  updateModelInfo(models[currentModelIndex]);
+  const model = models[currentModelIndex];
+  loadModel(model);
+  updateModelInfo(model);
 }
 
 // 切换线框模式
